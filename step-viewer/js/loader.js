@@ -90,7 +90,70 @@ function buildThreeMesh(meshData, partId) {
     materials.length === 1 ? materials[0] : materials
   );
   mesh.userData.partId = partId;
+  mesh.userData.brepFaces = meshData.brep_faces || [];
+
+  // Build boundary edges per brep_face for measurement
+  if (meshData.brep_faces && meshData.brep_faces.length > 0) {
+    mesh.userData.boundaryEdges = buildBoundaryEdges(geometry, meshData.brep_faces);
+  }
+
   return mesh;
+}
+
+function buildBoundaryEdges(geometry, brepFaces) {
+  const index = geometry.index.array;
+  const posAttr = geometry.attributes.position;
+
+  // Map each triangle to its brep_face group index
+  const triToGroup = new Int32Array(index.length / 3).fill(-1);
+  for (let gi = 0; gi < brepFaces.length; gi++) {
+    const face = brepFaces[gi];
+    for (let t = face.first; t < face.last; t++) {
+      triToGroup[t] = gi;
+    }
+  }
+
+  // Build edge map: edge key -> [groupIndex, groupIndex, ...]
+  const edgeMap = new Map();
+  function edgeKey(a, b) {
+    return a < b ? `${a}_${b}` : `${b}_${a}`;
+  }
+
+  for (let t = 0; t < index.length / 3; t++) {
+    const i0 = index[t * 3];
+    const i1 = index[t * 3 + 1];
+    const i2 = index[t * 3 + 2];
+    const g = triToGroup[t];
+    const edges = [[i0, i1], [i1, i2], [i2, i0]];
+    for (const [a, b] of edges) {
+      const key = edgeKey(a, b);
+      if (!edgeMap.has(key)) edgeMap.set(key, new Set());
+      edgeMap.get(key).add(g);
+    }
+  }
+
+  // Collect boundary edges per group (edges between different groups)
+  const boundaryByGroup = new Map();
+  for (const [key, groups] of edgeMap) {
+    if (groups.size > 1 || (groups.size === 1 && groups.has(-1))) {
+      const [aStr, bStr] = key.split('_');
+      const a = parseInt(aStr), b = parseInt(bStr);
+      const ax = posAttr.getX(a), ay = posAttr.getY(a), az = posAttr.getZ(a);
+      const bx = posAttr.getX(b), by = posAttr.getY(b), bz = posAttr.getZ(b);
+      const seg = {
+        a: new THREE.Vector3(ax, ay, az),
+        b: new THREE.Vector3(bx, by, bz),
+        vertexIndices: [a, b]
+      };
+      for (const g of groups) {
+        if (g === -1) continue;
+        if (!boundaryByGroup.has(g)) boundaryByGroup.set(g, []);
+        boundaryByGroup.get(g).push(seg);
+      }
+    }
+  }
+
+  return boundaryByGroup;
 }
 
 export async function loadStepFile(arrayBuffer, scene) {
@@ -117,10 +180,10 @@ export async function loadStepFile(arrayBuffer, scene) {
   });
   toRemove.forEach(obj => obj.parent?.remove(obj));
 
-  // Remove old groups
+  // Remove old model groups (keep measurement overlay)
   const groupsToRemove = [];
   scene.children.forEach(child => {
-    if (child.isGroup) groupsToRemove.push(child);
+    if (child.isGroup && child.name !== 'measurement-overlay') groupsToRemove.push(child);
   });
   groupsToRemove.forEach(g => scene.remove(g));
 

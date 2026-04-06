@@ -32,6 +32,7 @@ export function initSelection(appState) {
 }
 
 function handleClick(e, appState) {
+  if (appState.measurementMode) return;
   const canvas = appState.renderer.domElement;
   const rect = canvas.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;

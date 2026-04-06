@@ -34,6 +34,39 @@
   </div>
 
   <div id="viewer-container">
+    <div id="toolbar">
+      <button id="btn-measure" title="거리 측정 (M)">&#128207; 측정</button>
+      <button id="btn-clear-measure" title="측정 초기화">&#10060; 초기화</button>
+    </div>
+
+    <div id="measure-panel">
+      <div class="measure-step" id="step1">
+        <div class="step-header">
+          <span class="step-dot dot-red"></span>
+          <span>첫 번째 선택</span>
+        </div>
+        <div class="step-buttons">
+          <button class="pick-type-btn" data-step="1" data-type="point">&#11044; 점</button>
+          <button class="pick-type-btn" data-step="1" data-type="edge">&#9135; 선</button>
+          <button class="pick-type-btn" data-step="1" data-type="face">&#11036; 면</button>
+        </div>
+        <div class="step-info" id="step1-info">유형을 선택하세요</div>
+      </div>
+      <div class="measure-step disabled" id="step2">
+        <div class="step-header">
+          <span class="step-dot dot-orange"></span>
+          <span>두 번째 선택</span>
+        </div>
+        <div class="step-buttons">
+          <button class="pick-type-btn" data-step="2" data-type="point">&#11044; 점</button>
+          <button class="pick-type-btn" data-step="2" data-type="edge">&#9135; 선</button>
+          <button class="pick-type-btn" data-step="2" data-type="face">&#11036; 면</button>
+        </div>
+        <div class="step-info" id="step2-info">유형을 선택하세요</div>
+      </div>
+      <div id="measure-result"></div>
+    </div>
+
     <canvas id="viewer-canvas"></canvas>
     <div id="initial-message">
       <div class="drop-icon">&#128230;</div>

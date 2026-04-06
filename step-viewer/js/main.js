@@ -2,6 +2,7 @@ import { initScene, frameBoundingBox } from './scene.js';
 import { loadStepFile } from './loader.js';
 import { buildTree, resetTree } from './tree.js';
 import { initSelection, selectPart } from './selection.js';
+import { initMeasurement, clearMeasurement, setMeasurementMode } from './measurement.js';
 
 // App state
 const appState = {
@@ -12,6 +13,7 @@ const appState = {
   partMeshes: new Map(),
   selectedPartId: null,
   originalMaterials: new Map(),
+  measurementMode: false,
 };
 
 // Init scene
@@ -21,6 +23,39 @@ Object.assign(appState, { scene, camera, renderer, controls });
 
 // Init selection (3D click)
 initSelection(appState);
+
+// Init measurement
+initMeasurement(appState);
+
+// Measurement toolbar
+const btnMeasure = document.getElementById('btn-measure');
+const btnClearMeasure = document.getElementById('btn-clear-measure');
+
+function toggleMeasureMode() {
+  appState.measurementMode = !appState.measurementMode;
+  btnMeasure.classList.toggle('active', appState.measurementMode);
+  setMeasurementMode(appState.measurementMode);
+  if (appState.measurementMode) {
+    selectPart(null, appState);
+  }
+}
+
+btnMeasure.addEventListener('click', toggleMeasureMode);
+
+btnClearMeasure.addEventListener('click', () => {
+  clearMeasurement();
+});
+
+// Keyboard shortcut: M to toggle measurement
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'm' || e.key === 'M') {
+    toggleMeasureMode();
+  }
+  if (e.key === 'Escape' && appState.measurementMode) {
+    toggleMeasureMode();
+  }
+});
 
 // UI elements
 const dropOverlay = document.getElementById('drop-overlay');
@@ -95,6 +130,7 @@ async function loadFile(file) {
     // Reset state
     appState.selectedPartId = null;
     appState.originalMaterials = new Map();
+    clearMeasurement();
     resetTree();
 
     const { rootNode, partMeshes, boundingBox } = await loadStepFile(arrayBuffer, scene);

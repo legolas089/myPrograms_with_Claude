@@ -236,3 +236,159 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Toolbar */
+#toolbar {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  display: flex;
+  gap: 4px;
+}
+
+#toolbar button {
+  padding: 6px 12px;
+  font-size: 13px;
+  background: rgba(50, 50, 50, 0.9);
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#toolbar button:hover {
+  background: rgba(70, 70, 70, 0.95);
+}
+
+#toolbar button.active {
+  background: #0078d4;
+  border-color: #0078d4;
+  color: #fff;
+}
+
+/* Measurement panel */
+#measure-panel {
+  position: absolute;
+  top: 44px;
+  left: 8px;
+  z-index: 100;
+  background: rgba(37, 37, 38, 0.95);
+  border: 1px solid #555;
+  border-radius: 6px;
+  padding: 10px;
+  width: 200px;
+  display: none;
+}
+
+#measure-panel.active {
+  display: block;
+}
+
+.measure-step {
+  margin-bottom: 10px;
+  padding: 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.04);
+}
+
+.measure-step.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.measure-step.done {
+  opacity: 0.7;
+}
+
+.step-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #ddd;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-red { background: #ff3333; }
+.dot-orange { background: #ff9900; }
+
+.step-buttons {
+  display: flex;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.pick-type-btn {
+  flex: 1;
+  padding: 5px 0;
+  font-size: 12px;
+  background: rgba(60, 60, 60, 0.9);
+  color: #bbb;
+  border: 1px solid #555;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.pick-type-btn:hover {
+  background: rgba(80, 80, 80, 0.95);
+}
+
+.pick-type-btn.active {
+  background: #0078d4;
+  border-color: #0078d4;
+  color: #fff;
+}
+
+.step-info {
+  font-size: 11px;
+  color: #888;
+  min-height: 16px;
+}
+
+#measure-result {
+  padding: 8px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffdd00;
+  display: none;
+  border-top: 1px solid #444;
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+#measure-result.active {
+  display: block;
+}
+
+/* Measurement label */
+#measure-label {
+  position: absolute;
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffff00;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  border: 1px solid #ffff00;
+  z-index: 101;
+  pointer-events: none;
+  transform: translate(-50%, -130%);
+  white-space: nowrap;
+}
+
+/* Crosshair cursor in measurement mode */
+#viewer-canvas.measure-cursor {
+  cursor: crosshair;
+}
