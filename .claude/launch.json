@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "step-viewer", "-p", "3000", "-c-1"],
       "port": 3000
+    },
+    {
+      "name": "pdf-editor",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "pdf_editor", "-p", "3001", "-c-1"],
+      "port": 3001
     }
   ]
 }
