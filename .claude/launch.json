@@ -18,6 +18,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "quarter_car_sim", "-p", "3002", "-c-1"],
       "port": 3002
+    },
+    {
+      "name": "half-car-sim",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "half_car_sim", "-p", "3003", "-c-1"],
+      "port": 3003
     }
   ]
 }
