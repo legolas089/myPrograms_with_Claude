@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roll Center Simulator</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="panel">
+      <h1>Roll Center Sim</h1>
+
+      <div class="config-tabs">
+        <button class="config-tab active" data-set="A">Set A</button>
+        <button class="config-tab" data-set="B">Set B</button>
+      </div>
+
+      <div class="param-group">
+        <label>프리셋</label>
+        <select id="preset-select">
+          <option value="stock-sedan">Stock Sedan</option>
+          <option value="lowered">Lowered</option>
+          <option value="high-rc">High Roll Center</option>
+          <option value="parallel">Parallel Arms</option>
+          <option value="custom">사용자 정의</option>
+        </select>
+      </div>
+
+      <!-- Track -->
+      <div class="section-header">Track</div>
+      <div class="param-group">
+        <label>Half Track Width</label>
+        <div class="slider-row">
+          <input type="range" id="param-halfTrack" min="600" max="900" step="5" value="750">
+          <span class="param-val" id="val-halfTrack">750</span><span class="unit">mm</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Ground Clearance (지상고)</label>
+        <div class="slider-row">
+          <input type="range" id="param-bodyHeight" min="0" max="300" step="5" value="200">
+          <span class="param-val" id="val-bodyHeight">200</span><span class="unit">mm</span>
+        </div>
+      </div>
+
+      <!-- Lower Arm -->
+      <div class="section-header">Lower Arm</div>
+      <div class="param-group">
+        <label>Inner Pivot X (from CL)</label>
+        <div class="slider-row">
+          <input type="range" id="param-lowerPivotX" min="0" max="400" step="5" value="200">
+          <span class="param-val" id="val-lowerPivotX">200</span><span class="unit">mm</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Inner Pivot Y (from base)</label>
+        <div class="slider-row">
+          <input type="range" id="param-lowerPivotY" min="0" max="200" step="5" value="0">
+          <span class="param-val" id="val-lowerPivotY">0</span><span class="unit">mm</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Arm Length</label>
+        <div class="slider-row">
+          <input type="range" id="param-lowerArmLen" min="200" max="500" step="5" value="350">
+          <span class="param-val" id="val-lowerArmLen">350</span><span class="unit">mm</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Arm Angle</label>
+        <div class="slider-row">
+          <input type="range" id="param-lowerArmAngle" min="-15" max="15" step="0.5" value="-2">
+          <span class="param-val" id="val-lowerArmAngle">-2.0</span><span class="unit">deg</span>
+        </div>
+      </div>
+
+      <!-- Upper Arm -->
+      <div class="section-header">Upper Arm</div>
+      <div class="param-group">
+        <label>Inner Pivot X (from CL)</label>
+        <div class="slider-row">
+          <input type="range" id="param-upperPivotX" min="0" max="400" step="5" value="200">
+          <span class="param-val" id="val-upperPivotX">200</span><span class="unit">mm</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Inner Pivot Y (from base)</label>
+        <div class="slider-row">
+          <input type="range" id="param-upperPivotY" min="0" max="350" step="5" value="200">
+          <span class="param-val" id="val-upperPivotY">200</span><span class="unit">mm</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Arm Length</label>
+        <div class="slider-row">
+          <input type="range" id="param-upperArmLen" min="150" max="400" step="5" value="280">
+          <span class="param-val" id="val-upperArmLen">280</span><span class="unit">mm</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Arm Angle</label>
+        <div class="slider-row">
+          <input type="range" id="param-upperArmAngle" min="-20" max="10" step="0.5" value="-8">
+          <span class="param-val" id="val-upperArmAngle">-8.0</span><span class="unit">deg</span>
+        </div>
+      </div>
+
+      <!-- Bump -->
+      <div class="section-header">Bump Sweep</div>
+      <div class="param-group">
+        <label>Bump Range (±)</label>
+        <div class="slider-row">
+          <input type="range" id="param-bumpRange" min="10" max="80" step="5" value="50">
+          <span class="param-val" id="val-bumpRange">50</span><span class="unit">mm</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>현재 범프 위치</label>
+        <div class="slider-row">
+          <input type="range" id="param-bumpPos" min="-50" max="50" step="1" value="0">
+          <span class="param-val" id="val-bumpPos">0</span><span class="unit">mm</span>
+        </div>
+      </div>
+
+      <!-- Compare toggle -->
+      <div class="param-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="compare-toggle">
+          비교 모드 (Set A vs B)
+        </label>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="btn-primary" id="btn-start">&#9654; Sweep</button>
+        <button class="btn-secondary" id="btn-reset">&#8634; 리셋</button>
+      </div>
+
+      <!-- Kinematic Results -->
+      <div id="results-panel">
+        <h3>Kinematic Results</h3>
+        <div class="result-row"><span class="result-label">RC Height</span><span class="result-value" id="res-rc-height">-</span></div>
+        <div class="result-row"><span class="result-label">IC Position</span><span class="result-value" id="res-ic-pos">-</span></div>
+        <div class="result-row"><span class="result-label">Swing Arm Length</span><span class="result-value" id="res-sa-length">-</span></div>
+        <div class="result-row"><span class="result-label">Swing Arm Angle</span><span class="result-value" id="res-sa-angle">-</span></div>
+        <div class="result-row"><span class="result-label">Camber</span><span class="result-value" id="res-camber">-</span></div>
+        <div class="result-row"><span class="result-label">Camber Gain</span><span class="result-value" id="res-camber-gain">-</span></div>
+        <div class="result-row"><span class="result-label">KPI</span><span class="result-value" id="res-kpi">-</span></div>
+        <div class="result-row"><span class="result-label">Scrub Radius</span><span class="result-value" id="res-scrub-radius">-</span></div>
+        <div class="result-row"><span class="result-label">Track Change</span><span class="result-value" id="res-scrub">-</span></div>
+      </div>
+
+      <!-- Vehicle Spec (Phase 2 — collapsible) -->
+      <div class="param-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="vehicle-spec-toggle">
+          Vehicle Spec 추가 입력
+        </label>
+      </div>
+      <div id="vehicle-spec-panel" class="collapsible-panel hidden">
+        <div class="param-group">
+          <label>CG Height</label>
+          <div class="slider-row">
+            <input type="range" id="param-cgHeight" min="300" max="700" step="10" value="500">
+            <span class="param-val" id="val-cgHeight">500</span><span class="unit">mm</span>
+          </div>
+        </div>
+        <div class="param-group">
+          <label>Vehicle Mass</label>
+          <div class="slider-row">
+            <input type="range" id="param-mass" min="800" max="2500" step="50" value="1400">
+            <span class="param-val" id="val-mass">1400</span><span class="unit">kg</span>
+          </div>
+        </div>
+        <div class="param-group">
+          <label>Lateral G</label>
+          <div class="slider-row">
+            <input type="range" id="param-latG" min="0.1" max="2.0" step="0.1" value="1.0">
+            <span class="param-val" id="val-latG">1.0</span><span class="unit">G</span>
+          </div>
+        </div>
+        <div id="dynamics-results">
+          <h3>Load Transfer</h3>
+          <div class="result-row"><span class="result-label">Geometric</span><span class="result-value" id="res-geo-transfer">-</span></div>
+          <div class="result-row"><span class="result-label">Elastic</span><span class="result-value" id="res-elastic-transfer">-</span></div>
+          <div class="result-row"><span class="result-label">Geo Ratio</span><span class="result-value" id="res-geo-ratio">-</span></div>
+          <div class="result-row"><span class="result-label">Jacking Force</span><span class="result-value" id="res-jacking">-</span></div>
+        </div>
+      </div>
+    </aside>
+
+    <main id="main">
+      <div id="anim-container">
+        <canvas id="anim-canvas"></canvas>
+      </div>
+      <div id="graphs-area">
+        <div class="graph-cell" id="rc-height-container">
+          <canvas id="rc-height-canvas"></canvas>
+          <div class="graph-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#ffd54f"></span>RC Height</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#ffab40"></span>B</span>
+          </div>
+        </div>
+        <div class="graph-cell" id="sa-angle-container">
+          <canvas id="sa-angle-canvas"></canvas>
+          <div class="graph-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#4fc3f7"></span>SA Angle</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#81c784"></span>B</span>
+          </div>
+        </div>
+        <div class="graph-cell" id="camber-container">
+          <canvas id="camber-canvas"></canvas>
+          <div class="graph-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#ce93d8"></span>Camber</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#ba68c8"></span>B</span>
+          </div>
+        </div>
+        <div class="graph-cell" id="scrub-container">
+          <canvas id="scrub-canvas"></canvas>
+          <div class="graph-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#ff8a65"></span>Track Chg</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#ffb74d"></span>B</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

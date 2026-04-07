@@ -24,6 +24,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "half_car_sim", "-p", "3003", "-c-1"],
       "port": 3003
+    },
+    {
+      "name": "roll-center-sim",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "roll_center_sim", "-p", "3004", "-c-1"],
+      "port": 3004
     }
   ]
 }

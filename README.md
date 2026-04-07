@@ -57,6 +57,19 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 
 **실행**: `Half-Car Sim.bat` 더블클릭 (http://localhost:3003)
 
+### 5. Roll Center Simulator (`roll_center_sim/`)
+더블 위시본 서스펜션 프론트뷰 기구학 시뮬레이터
+
+- 4-bar 링키지 기구학으로 Instant Center, Roll Center 실시간 계산
+- 프론트뷰 2D 애니메이션 (양측 대칭, IC 구성선, RC 마커, Swing Arm, T₁/T₂ 접지점)
+- 범프 트래블에 따른 RC Height, SA Angle, Camber, Track Change 그래프
+- Ground Clearance(지상고) 슬라이더: Pivot Y는 차체 기준 상대값
+- Kinematic Results 패널: 9개 지표 실시간 표시
+- Vehicle Spec 토글: CG Height, Mass, Lateral G 입력 → Load Transfer, Jacking Force
+- Set A vs Set B 비교 모드, 프리셋 (Stock Sedan/Lowered/High RC/Parallel)
+
+**실행**: `Roll Center Sim.bat` 더블클릭 (http://localhost:3004)
+
 ---
 
 ## 사전 요구사항

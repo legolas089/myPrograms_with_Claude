@@ -1,0 +1,353 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #1e1e1e;
+  color: #ccc;
+  height: 100vh;
+  overflow: hidden;
+}
+
+@media (max-height: 800px) {
+  body, #app { height: auto; min-height: 100vh; }
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ── Left Panel ── */
+#panel {
+  width: 300px;
+  min-width: 300px;
+  background: #252526;
+  border-right: 1px solid #333;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#panel h1 {
+  font-size: 18px;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+/* Section headers */
+.section-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: #666;
+  letter-spacing: 1px;
+  padding: 4px 0 2px;
+  border-bottom: 1px solid #333;
+  margin-top: 2px;
+}
+
+/* Config Tabs */
+.config-tabs {
+  display: flex;
+  gap: 4px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.config-tab {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  color: #888;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.config-tab:hover { color: #bbb; }
+.config-tab.active { background: #0078d4; color: #fff; }
+
+/* Param groups */
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.param-group > label {
+  font-size: 11px;
+  color: #999;
+  font-weight: 500;
+}
+
+.param-group select {
+  padding: 5px 8px;
+  font-size: 13px;
+  background: #1e1e1e;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.param-group select:focus { border-color: #0078d4; }
+
+/* Slider row */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #444;
+  border-radius: 2px;
+  outline: none;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0078d4;
+  cursor: pointer;
+  border: none;
+}
+
+.slider-row input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0078d4;
+  cursor: pointer;
+  border: none;
+}
+
+.param-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4fc3f7;
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  font-size: 10px;
+  color: #777;
+  min-width: 32px;
+}
+
+/* Checkbox */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: #0078d4;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-primary {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  background: #0078d4;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover { background: #1a8ae8; }
+
+.btn-secondary {
+  padding: 10px 16px;
+  font-size: 13px;
+  background: #333;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-secondary:hover { background: #444; }
+
+/* ── Results Panel ── */
+#results-panel {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+#results-panel h3 {
+  font-size: 13px;
+  color: #ddd;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 6px;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+
+.result-label {
+  font-size: 11px;
+  color: #999;
+}
+
+.result-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #4fc3f7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Collapsible Panel (Vehicle Spec) ── */
+.collapsible-panel {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.collapsible-panel.hidden {
+  display: none;
+}
+
+#dynamics-results h3 {
+  font-size: 13px;
+  color: #ddd;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 6px;
+}
+
+/* ── Main Content ── */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-width: 0;
+}
+
+#anim-container {
+  flex-shrink: 0;
+  height: 55vh;
+  min-height: 380px;
+  position: relative;
+  border-bottom: 1px solid #333;
+}
+
+#anim-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Graphs area: 2x2 grid */
+#graphs-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  flex-shrink: 0;
+  height: 380px;
+  min-height: 300px;
+  border-top: 1px solid #333;
+}
+
+.graph-cell {
+  position: relative;
+  background: #1a1a1a;
+  border: 0.5px solid #333;
+}
+
+.graph-cell canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.graph-legend {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+  color: #aaa;
+  flex-wrap: wrap;
+  max-width: 85%;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.legend-color {
+  width: 14px;
+  height: 3px;
+  border-radius: 1px;
+  display: inline-block;
+}
+
+/* Compare legend hidden by default */
+.compare-legend {
+  display: none !important;
+}
+
+.compare-legend.visible {
+  display: flex !important;
+}
+
+/* ── Scrollbar ── */
+#panel::-webkit-scrollbar { width: 6px; }
+#panel::-webkit-scrollbar-track { background: #252526; }
+#panel::-webkit-scrollbar-thumb { background: #424242; border-radius: 3px; }
+
+#main::-webkit-scrollbar { width: 6px; }
+#main::-webkit-scrollbar-track { background: #1e1e1e; }
+#main::-webkit-scrollbar-thumb { background: #424242; border-radius: 3px; }
