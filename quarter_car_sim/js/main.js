@@ -1,7 +1,7 @@
 import { runSimulation, computeComfort, computeDerived, computeFrequencyResponse } from './simulation.js';
 import { createRoadProfile } from './road.js';
 import { AnimationRenderer } from './animation.js';
-import { GraphRenderer, FreqResponseRenderer } from './graphs.js';
+import { GraphRenderer, FreqResponseRenderer, ForceGraphRenderer } from './graphs.js';
 
 // ── State ──
 const configSets = {
@@ -22,6 +22,10 @@ let roadFnA = null;
 let roadFnB = null;
 let freqRespA = null;
 let freqRespB = null;
+
+// Loaded JSON state
+let loadedData = null;
+let activeForceData = null; // u(t) from loaded JSON
 
 // Presets
 const PRESETS = {
@@ -73,13 +77,25 @@ const comfortEls = {
 // Compare legend
 const compareLegends = document.querySelectorAll('.compare-legend');
 
+// Load JSON
+const btnLoadJson = document.getElementById('btn-load-json');
+const jsonFileInput = document.getElementById('json-file-input');
+const loadedInfo = document.getElementById('loaded-info');
+const loadedLabel = document.getElementById('loaded-label');
+const btnClearLoaded = document.getElementById('btn-clear-loaded');
+
+// Force graph container
+const forceContainer = document.getElementById('force-container');
+
 // ── Canvas setup ──
 const animCanvas = document.getElementById('anim-canvas');
 const graphCanvas = document.getElementById('graph-canvas');
 const freqCanvas = document.getElementById('freq-canvas');
+const forceCanvas = document.getElementById('force-canvas');
 const animRenderer = new AnimationRenderer(animCanvas);
 const graphRenderer = new GraphRenderer(graphCanvas);
 const freqRenderer = new FreqResponseRenderer(freqCanvas);
+const forceRenderer = new ForceGraphRenderer(forceCanvas);
 
 // ── Config Tab Switching ──
 configTabs.forEach(tab => {
@@ -118,8 +134,7 @@ for (const key of Object.keys(sliders)) {
 }
 
 function updateValDisplay(key) {
-  const v = parseFloat(sliders[key].value);
-  vals[key].textContent = v.toFixed(0);
+  vals[key].textContent = parseFloat(sliders[key].value).toFixed(0);
 }
 
 function updateDerived() {
@@ -128,22 +143,16 @@ function updateDerived() {
   dampingRatioEl.textContent = zeta.toFixed(3);
   naturalFreqEl.textContent = fn.toFixed(1);
 
-  if (zeta < 0.2) {
-    dampingRatioEl.style.color = '#ef5350';
-  } else if (zeta < 0.5) {
-    dampingRatioEl.style.color = '#81c784';
-  } else if (zeta < 0.8) {
-    dampingRatioEl.style.color = '#ffb74d';
-  } else {
-    dampingRatioEl.style.color = '#ef5350';
-  }
+  if (zeta < 0.2) dampingRatioEl.style.color = '#ef5350';
+  else if (zeta < 0.5) dampingRatioEl.style.color = '#81c784';
+  else if (zeta < 0.8) dampingRatioEl.style.color = '#ffb74d';
+  else dampingRatioEl.style.color = '#ef5350';
 }
 
 // Road sliders
 roadHSlider.addEventListener('input', () => {
   roadHVal.textContent = parseFloat(roadHSlider.value).toFixed(3);
 });
-
 speedSlider.addEventListener('input', () => {
   speedVal.textContent = parseFloat(speedSlider.value).toFixed(0);
 });
@@ -169,11 +178,8 @@ roadHVal.textContent = parseFloat(roadHSlider.value).toFixed(3);
 
 // ── Start / Reset ──
 btnStart.addEventListener('click', () => {
-  if (isRunning) {
-    stopSimulation();
-  } else {
-    startSimulation();
-  }
+  if (isRunning) stopSimulation();
+  else startSimulation();
 });
 
 btnReset.addEventListener('click', () => {
@@ -182,8 +188,10 @@ btnReset.addEventListener('click', () => {
   resultB = null;
   freqRespA = null;
   freqRespB = null;
+  activeForceData = null;
   currentTime = 0;
   clearComfort();
+  hideForceGraph();
   drawIdle();
 });
 
@@ -196,6 +204,12 @@ function startSimulation() {
   const speedMs = speedKmh / 3.6;
   const duration = 4.0;
 
+  // If loaded JSON data exists, use it
+  if (loadedData) {
+    startFromLoadedData();
+    return;
+  }
+
   // Run simulation A
   const paramsA = { ...configSets.A };
   roadFnA = createRoadProfile(roadType, roadH, speedMs);
@@ -203,7 +217,6 @@ function startSimulation() {
   const comfortA = computeComfort(resultA, paramsA);
   displayComfort(comfortA);
 
-  // Frequency response A
   freqRespA = computeFrequencyResponse(paramsA);
 
   // Run simulation B if compare mode
@@ -217,11 +230,72 @@ function startSimulation() {
     freqRespB = null;
   }
 
-  // Draw frequency response immediately (static, not time-dependent)
+  activeForceData = null;
+  hideForceGraph();
+
   freqRenderer.resize();
   freqRenderer.draw(freqRespA, freqRespB);
 
-  // Start animation
+  beginPlayback();
+}
+
+function startFromLoadedData() {
+  const d = loadedData;
+
+  // Passive → Set A
+  resultA = {
+    time: d.passive.time,
+    zs: d.passive.zs,
+    zu: d.passive.zu,
+    zr: d.passive.zr,
+    ddzs: d.passive.ddzs,
+  };
+
+  // Active → Set B
+  resultB = {
+    time: d.active.time,
+    zs: d.active.zs,
+    zu: d.active.zu,
+    zr: d.active.zr,
+    ddzs: d.active.ddzs,
+  };
+
+  // Road function from passive data (for animation)
+  const zrData = d.passive.zr;
+  const timeData = d.passive.time;
+  roadFnA = (t) => {
+    const idx = binarySearch(timeData, t);
+    if (idx >= timeData.length - 1) return zrData[zrData.length - 1];
+    const frac = (t - timeData[idx]) / (timeData[idx + 1] - timeData[idx]);
+    return zrData[idx] + frac * (zrData[idx + 1] - zrData[idx]);
+  };
+
+  // Actuator force data
+  activeForceData = { time: d.active.time, u: d.active.u };
+
+  // Display comfort from loaded data
+  if (d.active.comfort) {
+    displayComfortFromLoaded(d.passive.comfort, d.active.comfort);
+  }
+
+  // Frequency response
+  const params = d.params;
+  freqRespA = computeFrequencyResponse(params);
+  freqRespB = null;
+  freqRenderer.resize();
+  freqRenderer.draw(freqRespA, freqRespB);
+
+  // Show force graph
+  showForceGraph();
+  forceRenderer.resize();
+
+  // Enable compare visuals
+  compareLegends.forEach(el => el.classList.add('visible'));
+
+  beginPlayback();
+}
+
+function beginPlayback() {
   isRunning = true;
   currentTime = 0;
   btnStart.innerHTML = '&#9646;&#9646; 정지';
@@ -230,11 +304,9 @@ function startSimulation() {
   let lastTimestamp = null;
   function animate(timestamp) {
     if (!isRunning) return;
-
     if (lastTimestamp === null) lastTimestamp = timestamp;
     const dtReal = (timestamp - lastTimestamp) / 1000;
     lastTimestamp = timestamp;
-
     currentTime += dtReal * playbackSpeed;
 
     const maxTime = resultA.time[resultA.time.length - 1];
@@ -244,11 +316,9 @@ function startSimulation() {
       stopSimulation();
       return;
     }
-
     drawFrame();
     animFrame = requestAnimationFrame(animate);
   }
-
   animFrame = requestAnimationFrame(animate);
 }
 
@@ -281,6 +351,11 @@ function drawFrame() {
   );
 
   graphRenderer.draw(resultA, resultB, currentTime);
+
+  // Draw force graph if active data exists
+  if (activeForceData) {
+    forceRenderer.draw(activeForceData.time, activeForceData.u, currentTime);
+  }
 }
 
 function interpolateState(result, t) {
@@ -289,10 +364,8 @@ function interpolateState(result, t) {
   if (idx >= time.length - 1) {
     return { zs: zs[time.length - 1], zu: zu[time.length - 1], zr: zr[time.length - 1] };
   }
-
   const t0 = time[idx], t1 = time[idx + 1];
   const frac = (t - t0) / (t1 - t0);
-
   return {
     zs: zs[idx] + frac * (zs[idx + 1] - zs[idx]),
     zu: zu[idx] + frac * (zu[idx + 1] - zu[idx]),
@@ -310,27 +383,48 @@ function binarySearch(arr, val) {
   return lo;
 }
 
+// ── Force graph show/hide ──
+function showForceGraph() {
+  forceContainer.style.display = '';
+}
+
+function hideForceGraph() {
+  forceContainer.style.display = 'none';
+}
+
 // ── Comfort display ──
 function displayComfort(comfort) {
   comfortEls.sprungAcc.textContent = comfort.rmsAcc.toFixed(3) + ' m/s\u00B2';
   comfortEls.rattle.textContent = (comfort.rmsRattle * 1000).toFixed(2) + ' mm (max ' + (comfort.maxRattle * 1000).toFixed(1) + ')';
   comfortEls.tireDef.textContent = (comfort.rmsTireDef * 1000).toFixed(2) + ' mm (max ' + (comfort.maxTireDef * 1000).toFixed(1) + ')';
 
-  // Color code
   setComfortColor(comfortEls.sprungAcc, comfort.rmsAcc, [0.315, 0.63]);
-  setComfortColor(comfortEls.rattle, comfort.maxRattle * 1000, [30, 60]); // mm
-  setComfortColor(comfortEls.tireDef, comfort.maxTireDef * 1000, [10, 25]); // mm
+  setComfortColor(comfortEls.rattle, comfort.maxRattle * 1000, [30, 60]);
+  setComfortColor(comfortEls.tireDef, comfort.maxTireDef * 1000, [10, 25]);
+}
+
+function displayComfortFromLoaded(passiveC, activeC) {
+  // Show active comfort with comparison to passive
+  const acc = activeC.rmsAcc;
+  const accImp = passiveC.rmsAcc > 0 ? ((1 - acc / passiveC.rmsAcc) * 100) : 0;
+  comfortEls.sprungAcc.innerHTML = acc.toFixed(3) + ' m/s\u00B2 <small style="color:#81c784">(' + (accImp >= 0 ? '-' : '+') + Math.abs(accImp).toFixed(0) + '%)</small>';
+
+  const rat = activeC.maxRattle * 1000;
+  comfortEls.rattle.textContent = (activeC.rmsRattle * 1000).toFixed(2) + ' mm (max ' + rat.toFixed(1) + ')';
+
+  const td = activeC.maxTireDef * 1000;
+  comfortEls.tireDef.textContent = (activeC.rmsTireDef * 1000).toFixed(2) + ' mm (max ' + td.toFixed(1) + ')';
+
+  setComfortColor(comfortEls.sprungAcc, acc, [0.315, 0.63]);
+  setComfortColor(comfortEls.rattle, rat, [30, 60]);
+  setComfortColor(comfortEls.tireDef, td, [10, 25]);
 }
 
 function setComfortColor(el, value, [warn, bad]) {
   el.classList.remove('comfort-good', 'comfort-warn', 'comfort-bad');
-  if (value < warn) {
-    el.classList.add('comfort-good');
-  } else if (value < bad) {
-    el.classList.add('comfort-warn');
-  } else {
-    el.classList.add('comfort-bad');
-  }
+  if (value < warn) el.classList.add('comfort-good');
+  else if (value < bad) el.classList.add('comfort-warn');
+  else el.classList.add('comfort-bad');
 }
 
 function clearComfort() {
@@ -341,6 +435,61 @@ function clearComfort() {
     el.classList.remove('comfort-good', 'comfort-warn', 'comfort-bad');
   }
 }
+
+// ── JSON Load ──
+btnLoadJson.addEventListener('click', () => jsonFileInput.click());
+
+jsonFileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data.passive || !data.active) {
+        alert('유효하지 않은 JSON 형식입니다.\npassive / active 데이터가 필요합니다.');
+        return;
+      }
+      loadedData = data;
+      loadedInfo.style.display = 'flex';
+      const ctrl = data.metadata?.controller || 'Unknown';
+      loadedLabel.textContent = '\u2705 ' + ctrl;
+
+      // Apply params from JSON to sliders
+      if (data.params) {
+        configSets.A = { ...data.params };
+        loadSetToSliders('A');
+      }
+      if (data.road) {
+        if (data.road.type) roadSelect.value = data.road.type;
+        if (data.road.height) {
+          roadHSlider.value = data.road.height;
+          roadHVal.textContent = data.road.height.toFixed(3);
+        }
+        if (data.road.speed) {
+          const kmh = Math.round(data.road.speed * 3.6);
+          speedSlider.value = kmh;
+          speedVal.textContent = kmh;
+        }
+      }
+    } catch (err) {
+      alert('JSON 파싱 오류: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  jsonFileInput.value = ''; // reset for re-select
+});
+
+btnClearLoaded.addEventListener('click', () => {
+  loadedData = null;
+  activeForceData = null;
+  loadedInfo.style.display = 'none';
+  hideForceGraph();
+  compareLegends.forEach(el => {
+    el.classList.toggle('visible', compareMode);
+  });
+});
 
 // ── Idle state drawing ──
 function drawIdle() {
@@ -370,6 +519,7 @@ window.addEventListener('resize', () => {
   animRenderer.resize();
   graphRenderer.resize();
   freqRenderer.resize();
+  if (activeForceData) forceRenderer.resize();
   if (resultA && !isRunning) {
     drawFrame();
     freqRenderer.draw(freqRespA, freqRespB);
@@ -383,13 +533,8 @@ document.querySelectorAll('.has-tooltip').forEach(el => {
   const tipId = el.dataset.tooltip;
   const tip = document.getElementById('tip-' + tipId);
   if (!tip) return;
-
-  el.addEventListener('mouseenter', () => {
-    tip.style.display = 'block';
-  });
-  el.addEventListener('mouseleave', () => {
-    tip.style.display = 'none';
-  });
+  el.addEventListener('mouseenter', () => { tip.style.display = 'block'; });
+  el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
 });
 
 // ── Init ──

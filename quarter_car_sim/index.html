@@ -111,6 +111,16 @@
         <button class="btn-secondary" id="btn-reset">&#8634; 리셋</button>
       </div>
 
+      <!-- Load external result -->
+      <div class="controls" style="margin-top:4px">
+        <button class="btn-load" id="btn-load-json">&#128194; 결과 불러오기</button>
+        <input type="file" id="json-file-input" accept=".json" style="display:none">
+      </div>
+      <div id="loaded-info" class="loaded-info" style="display:none">
+        <span id="loaded-label"></span>
+        <button id="btn-clear-loaded" class="btn-clear">&times;</button>
+      </div>
+
       <!-- Ride Comfort -->
       <div id="comfort-panel">
         <h3>Ride Comfort</h3>
@@ -164,6 +174,12 @@
             <span class="legend-item"><span class="legend-color" style="background:#aaa"></span>zr</span>
             <span class="legend-item compare-legend"><span class="legend-color" style="background:#81c784"></span>zs B</span>
             <span class="legend-item compare-legend"><span class="legend-color" style="background:#ffb74d"></span>zu B</span>
+          </div>
+        </div>
+        <div id="force-container" style="display:none">
+          <canvas id="force-canvas"></canvas>
+          <div id="force-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#ffd54f"></span>u(t)</span>
           </div>
         </div>
         <div id="freq-container">

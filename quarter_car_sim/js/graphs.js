@@ -389,3 +389,151 @@ export class FreqResponseRenderer {
     ctx.stroke();
   }
 }
+
+/**
+ * Actuator force u(t) graph renderer
+ */
+export class ForceGraphRenderer {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.resize();
+  }
+
+  resize() {
+    const rect = this.canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width = rect.width * dpr;
+    this.canvas.height = rect.height * dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.w = rect.width;
+    this.h = rect.height;
+  }
+
+  /**
+   * Draw actuator force vs time
+   * @param {number[]} time
+   * @param {number[]} force - u(t) in Newtons
+   * @param {number} currentTime
+   */
+  draw(time, force, currentTime) {
+    const ctx = this.ctx;
+    const w = this.w;
+    const h = this.h;
+
+    const ml = 50, mr = 15, mt = 25, mb = 30;
+    const pw = w - ml - mr;
+    const ph = h - mt - mb;
+
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, w, h);
+
+    if (!time || time.length === 0) return;
+
+    const tMin = 0, tMax = time[time.length - 1];
+
+    // Find force range
+    let fMin = 0, fMax = 0;
+    for (const f of force) {
+      if (f < fMin) fMin = f;
+      if (f > fMax) fMax = f;
+    }
+    const fPad = Math.max((fMax - fMin) * 0.15, 10);
+    fMin -= fPad;
+    fMax += fPad;
+
+    const mapX = (t) => ml + (t - tMin) / (tMax - tMin) * pw;
+    const mapY = (v) => mt + ph - (v - fMin) / (fMax - fMin) * ph;
+
+    // Grid
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 0.5;
+    ctx.fillStyle = '#888';
+    ctx.font = '10px monospace';
+
+    // Time ticks
+    const tStep = this.niceStep(tMax - tMin, 6);
+    ctx.textAlign = 'center';
+    for (let t = 0; t <= tMax; t += tStep) {
+      const x = mapX(t);
+      ctx.beginPath(); ctx.moveTo(x, mt); ctx.lineTo(x, mt + ph); ctx.stroke();
+      ctx.fillText(t.toFixed(1) + 's', x, mt + ph + 15);
+    }
+
+    // Force ticks
+    const fStep = this.niceStep(fMax - fMin, 5);
+    ctx.textAlign = 'right';
+    for (let v = Math.ceil(fMin / fStep) * fStep; v <= fMax; v += fStep) {
+      const y = mapY(v);
+      ctx.beginPath(); ctx.moveTo(ml, y); ctx.lineTo(ml + pw, y); ctx.stroke();
+      ctx.fillText(v.toFixed(0) + 'N', ml - 4, y + 3);
+    }
+
+    // Zero line
+    if (fMin < 0 && fMax > 0) {
+      const y0 = mapY(0);
+      ctx.strokeStyle = '#555';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(ml, y0); ctx.lineTo(ml + pw, y0); ctx.stroke();
+    }
+
+    // Border
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(ml, mt, pw, ph);
+
+    // Clip & draw force line
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ml, mt, pw, ph);
+    ctx.clip();
+
+    const endIdx = this.findTimeIndex(time, currentTime);
+    ctx.beginPath();
+    ctx.strokeStyle = '#ffd54f';
+    ctx.lineWidth = 1.5;
+    ctx.moveTo(mapX(time[0]), mapY(force[0]));
+    for (let i = 1; i <= endIdx; i++) {
+      ctx.lineTo(mapX(time[i]), mapY(force[i]));
+    }
+    ctx.stroke();
+
+    // Time indicator
+    if (currentTime > 0 && currentTime <= tMax) {
+      const cx = mapX(currentTime);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(cx, mt); ctx.lineTo(cx, mt + ph); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.restore();
+
+    // Title
+    ctx.fillStyle = '#888';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Actuator Force u(t)', ml, mt - 8);
+  }
+
+  findTimeIndex(times, t) {
+    let lo = 0, hi = times.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (times[mid] <= t) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo;
+  }
+
+  niceStep(range, maxTicks) {
+    const rough = range / maxTicks;
+    const mag = Math.pow(10, Math.floor(Math.log10(rough)));
+    const norm = rough / mag;
+    if (norm < 1.5) return mag;
+    if (norm < 3.5) return 2 * mag;
+    if (norm < 7.5) return 5 * mag;
+    return 10 * mag;
+  }
+}
