@@ -1,0 +1,385 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #1e1e1e;
+  color: #ccc;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ── Left Panel ── */
+#panel {
+  width: 300px;
+  min-width: 300px;
+  background: #252526;
+  border-right: 1px solid #333;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#panel h1 {
+  font-size: 18px;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+/* Config Tabs */
+.config-tabs {
+  display: flex;
+  gap: 4px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.config-tab {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  color: #888;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.config-tab:hover {
+  color: #bbb;
+}
+
+.config-tab.active {
+  background: #0078d4;
+  color: #fff;
+}
+
+/* Param groups */
+.param-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.param-group > label {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+}
+
+.param-group select {
+  padding: 6px 8px;
+  font-size: 13px;
+  background: #1e1e1e;
+  color: #ccc;
+  border: 1px solid #444;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.param-group select:focus {
+  border-color: #0078d4;
+}
+
+/* Slider row */
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slider-row input[type="range"] {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: #444;
+  border-radius: 2px;
+  outline: none;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0078d4;
+  cursor: pointer;
+  border: none;
+}
+
+.slider-row input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0078d4;
+  cursor: pointer;
+  border: none;
+}
+
+.param-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4fc3f7;
+  min-width: 50px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  font-size: 11px;
+  color: #777;
+  min-width: 30px;
+}
+
+/* Derived info */
+.derived-info {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #999;
+}
+
+.derived-info strong {
+  color: #81c784;
+}
+
+/* Checkbox */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  accent-color: #0078d4;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Controls */
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-primary {
+  flex: 1;
+  padding: 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  background: #0078d4;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #1a8ae8;
+}
+
+.btn-secondary {
+  padding: 10px 16px;
+  font-size: 13px;
+  background: #333;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-secondary:hover {
+  background: #444;
+}
+
+/* ── Comfort Panel ── */
+#comfort-panel {
+  background: #1e1e1e;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+#comfort-panel h3 {
+  font-size: 13px;
+  color: #ddd;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 6px;
+}
+
+.comfort-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  position: relative;
+}
+
+.comfort-label {
+  font-size: 12px;
+  color: #999;
+}
+
+.comfort-label.has-tooltip {
+  cursor: help;
+  border-bottom: 1px dotted #666;
+}
+
+.comfort-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #4fc3f7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tooltip */
+.tooltip-box {
+  display: none;
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  margin-bottom: 6px;
+  background: #333;
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #ddd;
+  line-height: 1.6;
+  z-index: 100;
+  min-width: 260px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  pointer-events: none;
+}
+
+.comfort-label.has-tooltip:hover + .comfort-value + .tooltip-box,
+.comfort-row:hover .tooltip-box {
+  display: block;
+}
+
+/* ── Main Content ── */
+#main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#anim-container {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  border-bottom: 1px solid #333;
+}
+
+#anim-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#graphs-area {
+  display: flex;
+  height: 250px;
+  min-height: 200px;
+  border-top: 1px solid #333;
+}
+
+#graph-container,
+#freq-container {
+  flex: 1;
+  position: relative;
+  background: #1a1a1a;
+}
+
+#graph-container {
+  border-right: 1px solid #333;
+}
+
+#graph-canvas,
+#freq-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#graph-legend,
+#freq-legend {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  display: flex;
+  gap: 8px;
+  font-size: 9px;
+  color: #aaa;
+  flex-wrap: wrap;
+  max-width: 80%;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-color {
+  width: 12px;
+  height: 3px;
+  border-radius: 1px;
+  display: inline-block;
+}
+
+/* Compare legend hidden by default */
+.compare-legend {
+  display: none !important;
+}
+
+.compare-legend.visible {
+  display: flex !important;
+}
+
+/* ── Scrollbar ── */
+#panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+#panel::-webkit-scrollbar-track {
+  background: #252526;
+}
+
+#panel::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 3px;
+}
+
+/* ── Comfort color coding ── */
+.comfort-good { color: #81c784 !important; }
+.comfort-warn { color: #ffb74d !important; }
+.comfort-bad  { color: #ef5350 !important; }

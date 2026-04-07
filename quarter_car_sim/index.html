@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quarter-Car Suspension Simulator</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Left Panel -->
+    <aside id="panel">
+      <h1>Quarter-Car Sim</h1>
+
+      <!-- Config Set Tabs -->
+      <div class="config-tabs">
+        <button class="config-tab active" data-set="A">Set A</button>
+        <button class="config-tab" data-set="B">Set B</button>
+      </div>
+
+      <!-- Preset -->
+      <div class="param-group">
+        <label>프리셋</label>
+        <select id="preset-select">
+          <option value="sedan">승용차 (Sedan)</option>
+          <option value="suv">SUV</option>
+          <option value="racing">레이싱카</option>
+          <option value="custom">사용자 정의</option>
+        </select>
+      </div>
+
+      <!-- Parameters -->
+      <div class="param-group">
+        <label>Sprung Mass (ms)</label>
+        <div class="slider-row">
+          <input type="range" id="param-ms" min="100" max="500" step="5" value="250">
+          <span class="param-val" id="val-ms">250</span><span class="unit">kg</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Unsprung Mass (mu)</label>
+        <div class="slider-row">
+          <input type="range" id="param-mu" min="15" max="80" step="1" value="35">
+          <span class="param-val" id="val-mu">35</span><span class="unit">kg</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Spring Rate (ks)</label>
+        <div class="slider-row">
+          <input type="range" id="param-ks" min="5000" max="50000" step="500" value="15000">
+          <span class="param-val" id="val-ks">15000</span><span class="unit">N/m</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Damping Coeff. (cs)</label>
+        <div class="slider-row">
+          <input type="range" id="param-cs" min="200" max="5000" step="50" value="1500">
+          <span class="param-val" id="val-cs">1500</span><span class="unit">Ns/m</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>Tire Stiffness (kt)</label>
+        <div class="slider-row">
+          <input type="range" id="param-kt" min="50000" max="300000" step="5000" value="150000">
+          <span class="param-val" id="val-kt">150000</span><span class="unit">N/m</span>
+        </div>
+      </div>
+
+      <!-- Derived info -->
+      <div class="derived-info">
+        <span>Damping ratio: <strong id="damping-ratio">0.00</strong></span>
+        <span>Natural freq: <strong id="natural-freq">0.0</strong> Hz</span>
+      </div>
+
+      <!-- Road profile -->
+      <div class="param-group">
+        <label>노면 프로파일</label>
+        <select id="road-select">
+          <option value="bump">Speed Bump</option>
+          <option value="step">단차 (Step)</option>
+          <option value="sine">Sine Wave</option>
+          <option value="random">Random</option>
+        </select>
+      </div>
+      <div class="param-group">
+        <label>노면 높이</label>
+        <div class="slider-row">
+          <input type="range" id="param-road-h" min="0.01" max="0.15" step="0.005" value="0.05">
+          <span class="param-val" id="val-road-h">0.050</span><span class="unit">m</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>차량 속도</label>
+        <div class="slider-row">
+          <input type="range" id="param-speed" min="10" max="120" step="5" value="60">
+          <span class="param-val" id="val-speed">60</span><span class="unit">km/h</span>
+        </div>
+      </div>
+
+      <!-- Compare toggle -->
+      <div class="param-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="compare-toggle">
+          비교 모드 (Set A vs B)
+        </label>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="btn-primary" id="btn-start">&#9654; 시작</button>
+        <button class="btn-secondary" id="btn-reset">&#8634; 리셋</button>
+      </div>
+
+      <!-- Ride Comfort -->
+      <div id="comfort-panel">
+        <h3>Ride Comfort</h3>
+        <div class="comfort-row">
+          <span class="comfort-label has-tooltip" data-tooltip="sprung-acc">Sprung Mass Accel.</span>
+          <span class="comfort-value" id="comfort-sprung-acc">-</span>
+          <div class="tooltip-box" id="tip-sprung-acc">
+            <strong>RMS Sprung Mass Acceleration</strong><br>
+            a<sub>RMS</sub> = &radic;( (1/T) &int;<sub>0</sub><sup>T</sup> z&#776;<sub>s</sub>(t)&sup2; dt )<br><br>
+            차체 수직 가속도의 RMS 값.<br>
+            값이 작을수록 승차감이 좋음.
+          </div>
+        </div>
+        <div class="comfort-row">
+          <span class="comfort-label has-tooltip" data-tooltip="rattle">Rattle Space</span>
+          <span class="comfort-value" id="comfort-rattle">-</span>
+          <div class="tooltip-box" id="tip-rattle">
+            <strong>Rattle Space (Suspension Deflection)</strong><br>
+            RS<sub>RMS</sub> = &radic;( (1/T) &int;<sub>0</sub><sup>T</sup> (z<sub>s</sub> - z<sub>u</sub>)&sup2; dt )<br>
+            RS<sub>max</sub> = max|z<sub>s</sub>(t) - z<sub>u</sub>(t)|<br><br>
+            차체와 휠 사이 상대 변위.<br>
+            서스펜션 스트로크 한계를 초과하면<br>
+            범퍼에 충돌 (jounce/rebound bump).
+          </div>
+        </div>
+        <div class="comfort-row">
+          <span class="comfort-label has-tooltip" data-tooltip="tire-def">Tire Deflection</span>
+          <span class="comfort-value" id="comfort-tire-def">-</span>
+          <div class="tooltip-box" id="tip-tire-def">
+            <strong>Tire Deflection</strong><br>
+            TD<sub>RMS</sub> = &radic;( (1/T) &int;<sub>0</sub><sup>T</sup> (z<sub>u</sub> - z<sub>r</sub>)&sup2; dt )<br>
+            TD<sub>max</sub> = max|z<sub>u</sub>(t) - z<sub>r</sub>(t)|<br><br>
+            타이어 동적 변형량.<br>
+            정하중 대비 크면 접지력 상실 위험.
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main id="main">
+      <div id="anim-container">
+        <canvas id="anim-canvas"></canvas>
+      </div>
+      <div id="graphs-area">
+        <div id="graph-container">
+          <canvas id="graph-canvas"></canvas>
+          <div id="graph-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#4fc3f7"></span>zs</span>
+            <span class="legend-item"><span class="legend-color" style="background:#ff8a65"></span>zu</span>
+            <span class="legend-item"><span class="legend-color" style="background:#aaa"></span>zr</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#81c784"></span>zs B</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#ffb74d"></span>zu B</span>
+          </div>
+        </div>
+        <div id="freq-container">
+          <canvas id="freq-canvas"></canvas>
+          <div id="freq-legend">
+            <span class="legend-item"><span class="legend-color" style="background:#4fc3f7"></span>Accel</span>
+            <span class="legend-item"><span class="legend-color" style="background:#81c784"></span>Rattle</span>
+            <span class="legend-item"><span class="legend-color" style="background:#ff8a65"></span>Tire</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#4fc3f7;opacity:0.35"></span>B</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#81c784;opacity:0.35"></span>B</span>
+            <span class="legend-item compare-legend"><span class="legend-color" style="background:#ff8a65;opacity:0.35"></span>B</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

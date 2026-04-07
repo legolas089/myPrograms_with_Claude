@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "pdf_editor", "-p", "3001", "-c-1"],
       "port": 3001
+    },
+    {
+      "name": "quarter-car-sim",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "quarter_car_sim", "-p", "3002", "-c-1"],
+      "port": 3002
     }
   ]
 }
