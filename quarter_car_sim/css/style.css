@@ -432,3 +432,22 @@ body {
 .btn-clear:hover {
   color: #fff;
 }
+
+/* Server status */
+.server-status {
+  font-size: 11px;
+  padding: 2px 0;
+  min-height: 16px;
+}
+
+.server-status.connected {
+  color: #81c784;
+}
+
+.server-status.disconnected {
+  color: #ef5350;
+}
+
+.server-status.loading {
+  color: #ffd54f;
+}

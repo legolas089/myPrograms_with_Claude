@@ -87,6 +87,12 @@ const btnClearLoaded = document.getElementById('btn-clear-loaded');
 // Force graph container
 const forceContainer = document.getElementById('force-container');
 
+// Python controller
+const pythonToggle = document.getElementById('python-toggle');
+const pythonStatus = document.getElementById('python-status');
+let pythonMode = false;
+const PYTHON_URL = 'http://localhost:8000/simulate';
+
 // ── Canvas setup ──
 const animCanvas = document.getElementById('anim-canvas');
 const graphCanvas = document.getElementById('graph-canvas');
@@ -173,6 +179,18 @@ compareToggle.addEventListener('change', () => {
   });
 });
 
+// ── Python controller toggle ──
+pythonToggle.addEventListener('change', () => {
+  pythonMode = pythonToggle.checked;
+  if (pythonMode) {
+    pythonStatus.textContent = 'server.py를 실행하세요';
+    pythonStatus.className = 'server-status disconnected';
+  } else {
+    pythonStatus.textContent = '';
+    pythonStatus.className = 'server-status';
+  }
+});
+
 // ── Road height display ──
 roadHVal.textContent = parseFloat(roadHSlider.value).toFixed(3);
 
@@ -210,6 +228,12 @@ function startSimulation() {
     return;
   }
 
+  // If Python controller mode, delegate to server
+  if (pythonMode) {
+    startFromPythonServer(roadType, roadH, speedMs, duration);
+    return;
+  }
+
   // Run simulation A
   const paramsA = { ...configSets.A };
   roadFnA = createRoadProfile(roadType, roadH, speedMs);
@@ -237,6 +261,91 @@ function startSimulation() {
   freqRenderer.draw(freqRespA, freqRespB);
 
   beginPlayback();
+}
+
+/**
+ * Send road profile to Python server, receive passive+active results
+ */
+async function startFromPythonServer(roadType, roadH, speedMs, duration) {
+  const paramsA = { ...configSets.A };
+
+  // Generate road profile as time series to send to Python
+  roadFnA = createRoadProfile(roadType, roadH, speedMs);
+  const dt = 0.001; // road sampling interval
+  const numPts = Math.ceil(duration / dt);
+  const roadTime = [];
+  const roadZr = [];
+  for (let i = 0; i <= numPts; i++) {
+    const t = i * dt;
+    roadTime.push(Math.round(t * 1e6) / 1e6);
+    roadZr.push(roadFnA(t));
+  }
+
+  pythonStatus.textContent = 'Simulating...';
+  pythonStatus.className = 'server-status loading';
+  btnStart.disabled = true;
+
+  try {
+    const resp = await fetch(PYTHON_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        params: paramsA,
+        road_time: roadTime,
+        road_zr: roadZr,
+        duration: duration,
+        dt: 0.0005,
+      }),
+    });
+
+    if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
+
+    const data = await resp.json();
+
+    pythonStatus.textContent = data.controller || 'Connected';
+    pythonStatus.className = 'server-status connected';
+
+    // Passive → Set A
+    resultA = {
+      time: data.passive.time,
+      zs: data.passive.zs, zu: data.passive.zu,
+      zr: data.passive.zr, ddzs: data.passive.ddzs,
+    };
+
+    // Active → Set B
+    resultB = {
+      time: data.active.time,
+      zs: data.active.zs, zu: data.active.zu,
+      zr: data.active.zr, ddzs: data.active.ddzs,
+    };
+
+    // Force data
+    activeForceData = { time: data.active.time, u: data.active.u };
+
+    // Comfort
+    if (data.active.comfort && data.passive.comfort) {
+      displayComfortFromLoaded(data.passive.comfort, data.active.comfort);
+    }
+
+    // Frequency response
+    freqRespA = computeFrequencyResponse(paramsA);
+    freqRespB = null;
+    freqRenderer.resize();
+    freqRenderer.draw(freqRespA, freqRespB);
+
+    // Show force graph & compare legends
+    showForceGraph();
+    forceRenderer.resize();
+    compareLegends.forEach(el => el.classList.add('visible'));
+
+    beginPlayback();
+
+  } catch (err) {
+    pythonStatus.textContent = 'Connection failed: ' + err.message;
+    pythonStatus.className = 'server-status disconnected';
+  } finally {
+    btnStart.disabled = false;
+  }
 }
 
 function startFromLoadedData() {
