@@ -31,8 +31,22 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 
 **실행**: `PDF Editor.bat` 더블클릭 (http://localhost:3001)
 
+### 3. Quarter-Car Suspension Simulator (`quarter_car_sim/`)
+2-DOF 쿼터카 서스펜션 시뮬레이터
+
+- 노면 입력(Speed Bump, Step, Sine, Random)에 대한 차량 응답 실시간 시각화
+- 교과서 스타일 2D 스키매틱 애니메이션 (ms-ks/cs-mu-kt-타이어)
+- 시간 도메인 변위 그래프 + 주파수 응답 (Bode-style log-log)
+- Ride Comfort 지표: Sprung Mass Accel, Rattle Space, Tire Deflection
+- Set A vs Set B 비교 모드, 프리셋 (승용차/SUV/레이싱카)
+- Python 제어기 연동: `server.py`의 `control_law()` 함수만 수정하여 Passive vs Active 비교
+- 독립 실행 스크립트: PID / Skyhook 제어기 → JSON 결과 내보내기
+
+**실행**: `Quarter-Car Sim.bat` 더블클릭 (http://localhost:3002)
+
 ---
 
 ## 사전 요구사항
 
 - [Node.js](https://nodejs.org) 설치 (npx 명령어 사용)
+- [Python 3](https://www.python.org) (Quarter-Car 제어기 연동 시 필요, `pip install numpy`)
