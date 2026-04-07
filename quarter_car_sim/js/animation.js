@@ -36,7 +36,7 @@ export class AnimationRenderer {
     this.h = rect.height;
   }
 
-  draw(stateA, stateB, roadFn, speed) {
+  draw(stateA, stateB, roadFn, speed, labelA, labelB) {
     const ctx = this.ctx;
     const w = this.w;
     const h = this.h;
@@ -56,11 +56,11 @@ export class AnimationRenderer {
     // Car positions
     const carAx = stateB ? w * 0.32 : w * 0.5;
 
-    this.drawSchematic(ctx, stateA, carAx, roadBaseY, scale, COLORS.body, COLORS.unsprung, 'A');
+    this.drawSchematic(ctx, stateA, carAx, roadBaseY, scale, COLORS.body, COLORS.unsprung, labelA || 'A');
 
     if (stateB) {
       const carBx = w * 0.68;
-      this.drawSchematic(ctx, stateB, carBx, roadBaseY, scale, COLORS.bodyB, COLORS.unsprungB, 'B');
+      this.drawSchematic(ctx, stateB, carBx, roadBaseY, scale, COLORS.bodyB, COLORS.unsprungB, labelB || 'B');
     }
 
     // Time
@@ -237,9 +237,9 @@ export class AnimationRenderer {
     // 6. Sprung mass box (ms)
     this.drawMassBox(ctx, cx, msTop, msW, msH, bodyColor, 'mₛ');
 
-    // 7. Label (A / B)
+    // 7. Label (A / B / Passive / Active)
     ctx.fillStyle = bodyColor;
-    ctx.font = 'bold 16px sans-serif';
+    ctx.font = 'bold 14px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(label, cx, msTop - 10);
 

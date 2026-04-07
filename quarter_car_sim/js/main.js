@@ -452,11 +452,18 @@ function drawFrame() {
     stateB = interpolateState(resultB, currentTime);
   }
 
+  // Determine labels: show Passive/Active when active control data exists
+  const hasActiveControl = activeForceData !== null;
+  const labelA = hasActiveControl ? 'Passive' : 'A';
+  const labelB = hasActiveControl ? 'Active' : 'B';
+
   animRenderer.draw(
     { ...stateA, t: currentTime },
     stateB ? { ...stateB, t: currentTime } : null,
     roadFnA,
-    speedMs
+    speedMs,
+    labelA,
+    labelB
   );
 
   graphRenderer.draw(resultA, resultB, currentTime);
