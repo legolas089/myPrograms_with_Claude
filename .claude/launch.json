@@ -30,6 +30,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "roll_center_sim", "-p", "3004", "-c-1"],
       "port": 3004
+    },
+    {
+      "name": "robot-arm-sim",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "robot_arm_sim", "-p", "3005", "-c-1"],
+      "port": 3005
     }
   ]
 }

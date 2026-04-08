@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2D Robot Arm Simulator</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="app">
+  <!-- Left Panel -->
+  <aside id="panel">
+    <h1>Robot Arm Sim</h1>
+
+    <!-- Arm Parameters -->
+    <div class="section-header">Arm Parameters</div>
+    <div class="param-group">
+      <label>Link 1 Length (L1)</label>
+      <div class="slider-row">
+        <input type="range" id="param-L1" min="50" max="300" step="5" value="150" />
+        <span class="param-val" data-val-L1>150</span>
+        <span class="unit">px</span>
+      </div>
+    </div>
+    <div class="param-group">
+      <label>Link 2 Length (L2)</label>
+      <div class="slider-row">
+        <input type="range" id="param-L2" min="50" max="300" step="5" value="120" />
+        <span class="param-val" data-val-L2>120</span>
+        <span class="unit">px</span>
+      </div>
+    </div>
+
+    <!-- Joint Limits -->
+    <div class="section-header">Joint Limits</div>
+    <label class="checkbox-label"><input type="checkbox" id="cb-joint-limits" /> Enable Joint Limits</label>
+    <div id="joint-limits-group" class="joint-limits-hidden">
+      <div class="param-group">
+        <label>θ1 min</label>
+        <div class="slider-row">
+          <input type="range" id="param-t1min" min="-180" max="180" step="5" value="-135" />
+          <span class="param-val" data-val-t1min>-135</span>
+          <span class="unit">°</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>θ1 max</label>
+        <div class="slider-row">
+          <input type="range" id="param-t1max" min="-180" max="180" step="5" value="135" />
+          <span class="param-val" data-val-t1max>135</span>
+          <span class="unit">°</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>θ2 min</label>
+        <div class="slider-row">
+          <input type="range" id="param-t2min" min="-180" max="180" step="5" value="-150" />
+          <span class="param-val" data-val-t2min>-150</span>
+          <span class="unit">°</span>
+        </div>
+      </div>
+      <div class="param-group">
+        <label>θ2 max</label>
+        <div class="slider-row">
+          <input type="range" id="param-t2max" min="-180" max="180" step="5" value="150" />
+          <span class="param-val" data-val-t2max>150</span>
+          <span class="unit">°</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Position A -->
+    <div class="section-header">Position A (Pick) <span style="color:#ff6b6b;">&#9679;</span></div>
+    <div class="param-group">
+      <label>X_A</label>
+      <div class="slider-row">
+        <input type="range" id="param-xA" min="-400" max="400" step="5" value="200" />
+        <span class="param-val" data-val-xA>200</span>
+        <span class="unit">px</span>
+      </div>
+    </div>
+    <div class="param-group">
+      <label>Y_A</label>
+      <div class="slider-row">
+        <input type="range" id="param-yA" min="-400" max="400" step="5" value="50" />
+        <span class="param-val" data-val-yA>50</span>
+        <span class="unit">px</span>
+      </div>
+    </div>
+
+    <!-- Position B -->
+    <div class="section-header">Position B (Place) <span style="color:#4ade80;">&#9679;</span></div>
+    <div class="param-group">
+      <label>X_B</label>
+      <div class="slider-row">
+        <input type="range" id="param-xB" min="-400" max="400" step="5" value="-150" />
+        <span class="param-val" data-val-xB>-150</span>
+        <span class="unit">px</span>
+      </div>
+    </div>
+    <div class="param-group">
+      <label>Y_B</label>
+      <div class="slider-row">
+        <input type="range" id="param-yB" min="-400" max="400" step="5" value="180" />
+        <span class="param-val" data-val-yB>180</span>
+        <span class="unit">px</span>
+      </div>
+    </div>
+
+    <!-- Reachability Warning -->
+    <div id="warning-msg" class="warning"></div>
+
+    <!-- Path Planning -->
+    <div class="section-header">Path Planning</div>
+    <div class="param-group">
+      <label>Number of Paths</label>
+      <div class="slider-row">
+        <input type="range" id="param-numPaths" min="3" max="20" step="1" value="8" />
+        <span class="param-val" data-val-numPaths>8</span>
+        <span class="unit"></span>
+      </div>
+    </div>
+
+    <div class="strategy-checks">
+      <label class="checkbox-label"><input type="checkbox" data-strategy="jointLinear" checked /> Joint Linear</label>
+      <label class="checkbox-label"><input type="checkbox" data-strategy="cartesianLinear" checked /> Cartesian Linear</label>
+      <label class="checkbox-label"><input type="checkbox" data-strategy="viaPoint" checked /> Via-Point Spline</label>
+      <label class="checkbox-label"><input type="checkbox" data-strategy="elbowSwitch" checked /> Elbow Switch</label>
+      <label class="checkbox-label"><input type="checkbox" data-strategy="cubicPoly" checked /> Cubic Polynomial</label>
+      <label class="checkbox-label"><input type="checkbox" data-strategy="circularArc" checked /> Circular Arc</label>
+    </div>
+
+    <div class="controls">
+      <button id="btn-explore" class="btn-primary">Explore Paths</button>
+      <button id="btn-reset" class="btn-secondary">Reset</button>
+    </div>
+
+    <!-- Animation Controls -->
+    <div class="section-header">Animation</div>
+    <div class="param-group">
+      <label>Speed</label>
+      <div class="slider-row">
+        <input type="range" id="param-speed" min="0.1" max="3.0" step="0.1" value="1.0" />
+        <span class="param-val" data-val-speed>1.0</span>
+        <span class="unit">x</span>
+      </div>
+    </div>
+    <div class="anim-controls">
+      <button id="btn-prev" title="Previous path">&#9664;</button>
+      <button id="btn-play" title="Play/Stop">&#9654; Play</button>
+      <button id="btn-next" title="Next path">&#9654;</button>
+    </div>
+
+    <!-- Results -->
+    <div class="section-header">Selected Path</div>
+    <div id="results-panel">
+      <div class="result-row"><span class="result-label">Strategy</span><span class="result-value" id="res-strategy">-</span></div>
+      <div class="result-row"><span class="result-label">Joint Travel</span><span class="result-value" id="res-joint-travel">-</span></div>
+      <div class="result-row"><span class="result-label">Cartesian Length</span><span class="result-value" id="res-cartesian-len">-</span></div>
+      <div class="result-row"><span class="result-label">Smoothness</span><span class="result-value" id="res-smoothness">-</span></div>
+      <div class="result-row"><span class="result-label">Total Cost</span><span class="result-value" id="res-cost">-</span></div>
+      <div class="result-row"><span class="result-label">Rank</span><span class="result-value" id="res-rank">-</span></div>
+      <div class="result-row"><span class="result-label">Joint Limit</span><span class="result-value" id="res-limit-status">-</span></div>
+    </div>
+
+    <!-- Path List -->
+    <div class="section-header">All Paths</div>
+    <div id="path-list-container"></div>
+  </aside>
+
+  <!-- Main Content -->
+  <div id="main">
+    <div id="anim-container">
+      <canvas id="anim-canvas"></canvas>
+    </div>
+    <div id="graphs-area">
+      <div class="graph-cell">
+        <span class="graph-title">Joint Space (θ1 vs θ2)</span>
+        <canvas id="graph-joint"></canvas>
+      </div>
+      <div class="graph-cell">
+        <span class="graph-title">Cartesian Trajectory (X vs Y)</span>
+        <canvas id="graph-cartesian"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
