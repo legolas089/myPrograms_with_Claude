@@ -70,6 +70,19 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 
 **실행**: `Roll Center Sim.bat` 더블클릭 (http://localhost:3004)
 
+### 6. 2D Robot Arm Simulator (`robot_arm_sim/`)
+2관절 평면 로봇 암 경로 탐색 시뮬레이터
+
+- 위치 A(Pick) → 위치 B(Place) 물체 운반을 위한 다양한 경로 탐색
+- 6가지 경로 생성 전략: Joint Linear (MoveJ), Cartesian Linear (MoveL), Via-Point Spline, Elbow Switch, Cubic Polynomial, Circular Arc
+- Forward/Inverse Kinematics 실시간 계산 (Elbow-Up / Elbow-Down)
+- 관절 각도 제한(θ1/θ2 min/max) 설정 및 위반 검사
+- 경로 비용 메트릭: 관절 이동거리, 카테시안 길이, 최대 속도, 매끄러움
+- 3개 뷰 동시 시각화: 메인 캔버스(로봇 암 + 경로), 관절공간 플롯(θ1 vs θ2), 카테시안 궤적 플롯
+- A/B 위치 캔버스 드래그, 경로 선택/애니메이션 재생
+
+**실행**: `Robot Arm Simulator.bat` 더블클릭 (http://localhost:3005)
+
 ---
 
 ## 사전 요구사항
