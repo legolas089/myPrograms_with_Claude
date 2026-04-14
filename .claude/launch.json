@@ -36,6 +36,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "robot_arm_sim", "-p", "3005", "-c-1"],
       "port": 3005
+    },
+    {
+      "name": "latex-renderer",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "latex_renderer", "-p", "3006", "-c-1"],
+      "port": 3006
     }
   ]
 }

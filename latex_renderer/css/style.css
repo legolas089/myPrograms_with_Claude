@@ -1,0 +1,384 @@
+/* Reset & Base */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #1e1e2e;
+  color: #cdd6f4;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Header */
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  background: #181825;
+  border-bottom: 1px solid #313244;
+}
+
+#header h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #cba6f7;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.slider-group label {
+  font-size: 13px;
+  color: #a6adc8;
+}
+
+#font-size-slider,
+#line-spacing-slider {
+  width: 120px;
+  accent-color: #cba6f7;
+}
+
+#font-size-val,
+#line-spacing-val {
+  font-size: 13px;
+  color: #a6adc8;
+  min-width: 36px;
+}
+
+#copy-btn {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #cba6f7;
+  color: #1e1e2e;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+#copy-btn:hover {
+  background: #b48edb;
+}
+
+#copy-btn.copied {
+  background: #a6e3a1;
+}
+
+/* Snippet Bar */
+#snippet-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 20px;
+  background: #1e1e2e;
+  border-bottom: 1px solid #313244;
+}
+
+.snippet-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  background: #313244;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.snippet-btn:hover {
+  background: #45475a;
+  border-color: #cba6f7;
+}
+
+.bar-divider {
+  width: 1px;
+  height: 20px;
+  background: #45475a;
+  margin: 0 4px;
+}
+
+#save-formula-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #a6e3a1;
+  color: #1e1e2e;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+#save-formula-btn:hover {
+  background: #8bd88a;
+}
+
+/* Saved Formulas Bar */
+#saved-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 20px;
+  background: #181825;
+}
+
+#saved-bar:empty {
+  display: none;
+}
+
+#saved-bar:not(:empty) {
+  padding: 8px 20px;
+  border-bottom: 1px solid #313244;
+}
+
+.saved-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  background: #1e1e2e;
+  color: #a6e3a1;
+  border: 1px solid #a6e3a1;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-btn:hover {
+  background: #313244;
+}
+
+.saved-btn .saved-delete {
+  color: #f38ba8;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.saved-btn .saved-delete:hover {
+  color: #ff6b8a;
+}
+
+/* Main Split */
+#main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+#input-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #313244;
+  position: relative;
+}
+
+#editor-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+}
+
+#latex-input {
+  flex: 1;
+  resize: none;
+  padding: 16px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 15px;
+  line-height: 1.6;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  border: none;
+  outline: none;
+  tab-size: 2;
+}
+
+#latex-input::placeholder {
+  color: #585b70;
+}
+
+#output-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  background: #ffffff;
+  overflow: auto;
+  position: relative;
+  padding: 24px;
+}
+
+#render-output {
+  width: 100%;
+  font-size: 28px;
+  color: #000000;
+  text-align: center;
+  word-break: break-word;
+}
+
+#render-output {
+  --formula-gap: 12px;
+}
+
+#render-output .formula-block {
+  padding: var(--formula-gap) 16px;
+  border-bottom: 1px solid #e8e8e8;
+  text-align: center;
+  line-height: 2.2;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+#render-output .formula-block:last-child {
+  border-bottom: none;
+}
+
+/* Allow inline KaTeX to wrap at operators */
+#render-output .formula-block .katex {
+  white-space: normal;
+}
+
+#render-output .formula-error {
+  color: #f38ba8;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  padding: 8px 16px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+#copy-toast {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+#copy-toast.show {
+  display: block !important;
+  animation: toastFade 1.2s ease forwards;
+}
+
+@keyframes toastFade {
+  0%   { opacity: 1; }
+  70%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+#render-error {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  right: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-family: 'Consolas', monospace;
+  color: #f38ba8;
+  background: #1e1e2e;
+  border: 1px solid #f38ba8;
+  border-radius: 4px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Autocomplete Dropdown */
+#autocomplete-dropdown {
+  position: absolute;
+  z-index: 100;
+  background: #313244;
+  border: 1px solid #45475a;
+  border-radius: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  min-width: 200px;
+}
+
+.ac-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: 'Consolas', monospace;
+}
+
+.ac-item:hover,
+.ac-item.selected {
+  background: #45475a;
+}
+
+.ac-item .ac-name {
+  color: #cba6f7;
+}
+
+.ac-item .ac-desc {
+  color: #a6adc8;
+  font-size: 11px;
+  margin-left: 12px;
+}
+
+/* Scrollbar */
+#autocomplete-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+#autocomplete-dropdown::-webkit-scrollbar-track {
+  background: #313244;
+}
+#autocomplete-dropdown::-webkit-scrollbar-thumb {
+  background: #585b70;
+  border-radius: 3px;
+}
+
+#latex-input::-webkit-scrollbar {
+  width: 8px;
+}
+#latex-input::-webkit-scrollbar-track {
+  background: #1e1e2e;
+}
+#latex-input::-webkit-scrollbar-thumb {
+  background: #45475a;
+  border-radius: 4px;
+}

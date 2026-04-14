@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LaTeX Renderer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header">
+      <h1>LaTeX Renderer</h1>
+      <div class="header-controls">
+        <div class="slider-group">
+          <label for="font-size-slider">Font Size</label>
+          <input type="range" id="font-size-slider" min="16" max="72" step="1" value="28" />
+          <span id="font-size-val">28px</span>
+        </div>
+        <div class="slider-group">
+          <label for="line-spacing-slider">Line Gap</label>
+          <input type="range" id="line-spacing-slider" min="0" max="60" step="2" value="12" />
+          <span id="line-spacing-val">12px</span>
+        </div>
+        <button id="copy-btn" title="Copy as PNG">Copy PNG</button>
+      </div>
+    </header>
+
+    <!-- Snippet Buttons -->
+    <div id="snippet-bar">
+      <button class="snippet-btn" data-snippet="bmatrix">bmatrix</button>
+      <button class="snippet-btn" data-snippet="pmatrix">pmatrix</button>
+      <button class="snippet-btn" data-snippet="vmatrix">vmatrix</button>
+      <button class="snippet-btn" data-snippet="frac">frac</button>
+      <button class="snippet-btn" data-snippet="sum">sum</button>
+      <button class="snippet-btn" data-snippet="int">int</button>
+      <button class="snippet-btn" data-snippet="cases">cases</button>
+      <button class="snippet-btn" data-snippet="aligned">aligned</button>
+      <button class="snippet-btn" data-snippet="sqrt">sqrt</button>
+      <button class="snippet-btn" data-snippet="hat">hat</button>
+      <button class="snippet-btn" data-snippet="dot">dot</button>
+      <button class="snippet-btn" data-snippet="ddot">ddot</button>
+      <span class="bar-divider"></span>
+      <button id="save-formula-btn" title="Save current formula">+ Save</button>
+    </div>
+
+    <!-- Saved Formulas -->
+    <div id="saved-bar"></div>
+
+    <!-- Main Content -->
+    <div id="main">
+      <!-- Left: Input -->
+      <div id="input-pane">
+        <div id="editor-wrapper">
+          <textarea id="latex-input" spellcheck="false" placeholder="Enter LaTeX here...\nExample: \frac{a}{b} + \sqrt{c}">E = mc^2
+
+\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}
+
+\begin{bmatrix} a & b \\ c & d \end{bmatrix}</textarea>
+          <div id="autocomplete-dropdown" class="hidden"></div>
+        </div>
+      </div>
+
+      <!-- Right: Output -->
+      <div id="output-pane">
+        <div id="render-output"></div>
+        <div id="render-error" class="hidden"></div>
+        <div id="copy-toast" class="hidden">Copied!</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/snippets.js"></script>
+  <script src="js/autocomplete.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
