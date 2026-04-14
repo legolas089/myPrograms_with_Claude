@@ -37,13 +37,30 @@ class QuietHandler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+def find_python():
+    """Find the system Python interpreter (not the PyInstaller exe)."""
+    if getattr(sys, "frozen", False):
+        # Running as PyInstaller exe — sys.executable is the exe itself, NOT Python.
+        # Search for system Python instead.
+        import shutil
+        for name in ("python", "python3", "py"):
+            path = shutil.which(name)
+            if path:
+                return path
+        return None
+    return sys.executable
+
+
 def try_start_ocr_server():
     """Try to start the OCR server if pix2tex is installed."""
     try:
+        python = find_python()
+        if not python:
+            return None
         server_py = resource_path("server.py")
         if os.path.exists(server_py):
             proc = subprocess.Popen(
-                [sys.executable, server_py],
+                [python, server_py],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )

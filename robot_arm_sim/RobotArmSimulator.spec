@@ -1,15 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+
 a = Analysis(
-    ['launcher.py'],
+    ['server.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        ('index.html', '.'),
-        ('server.py', '.'),
-        ('css', 'css'),
-        ('js', 'js'),
-    ],
+    datas=[('index.html', '.'), ('README_exe.md', '.'), ('css', 'css'), ('js', 'js')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -26,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='LaTeXRenderer',
+    name='RobotArmSimulator',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

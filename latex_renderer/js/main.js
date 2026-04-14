@@ -94,10 +94,13 @@
 
   lineSlider.addEventListener('input', updateLineSpacing);
 
-  // --- Copy as PNG ---
+  // --- Copy as PNG (html2canvas) ---
   copyBtn.addEventListener('click', async () => {
     try {
-      const canvas = await renderToCanvas();
+      const canvas = await html2canvas(output, {
+        backgroundColor: '#ffffff',
+        scale: 3,
+      });
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         try {
@@ -112,97 +115,18 @@
             copyBtn.classList.remove('copied');
           }, 1500);
         } catch (err) {
-          downloadBlob(blob);
+          // Fallback: download as file
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'latex-formula.png';
+          a.click();
+          URL.revokeObjectURL(a.href);
         }
       }, 'image/png');
     } catch (err) {
       console.error('Copy failed:', err);
     }
   });
-
-  function renderToCanvas() {
-    return new Promise((resolve) => {
-      const scale = 3;
-      const source = output;
-      const rect = source.getBoundingClientRect();
-
-      const canvas = document.createElement('canvas');
-      canvas.width = rect.width * scale;
-      canvas.height = rect.height * scale;
-      const ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      const svgData = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="${rect.width * scale}" height="${rect.height * scale}">
-          <foreignObject width="${rect.width}" height="${rect.height}"
-            style="transform: scale(${scale}); transform-origin: top left;">
-            <div xmlns="http://www.w3.org/1999/xhtml"
-              style="font-size: ${getComputedStyle(source).fontSize}; color: #000; text-align: center;">
-              ${getKatexStyles()}
-              ${source.innerHTML}
-            </div>
-          </foreignObject>
-        </svg>`;
-
-      const img = new Image();
-      const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0);
-        URL.revokeObjectURL(url);
-        resolve(canvas);
-      };
-
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        resolve(canvasFallback(source, scale));
-      };
-
-      img.src = url;
-    });
-  }
-
-  function canvasFallback(source, scale) {
-    const rect = source.getBoundingClientRect();
-    const canvas = document.createElement('canvas');
-    canvas.width = rect.width * scale;
-    canvas.height = rect.height * scale;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.scale(scale, scale);
-    ctx.fillStyle = '#000000';
-    ctx.font = `${getComputedStyle(source).fontSize} serif`;
-    ctx.textAlign = 'center';
-    ctx.fillText('(Use screenshot tool for best results)', rect.width / 2, rect.height / 2);
-    return canvas;
-  }
-
-  function getKatexStyles() {
-    const sheets = document.styleSheets;
-    let css = '';
-    for (const sheet of sheets) {
-      try {
-        if (sheet.href && sheet.href.includes('katex')) {
-          for (const rule of sheet.cssRules) {
-            css += rule.cssText + '\n';
-          }
-        }
-      } catch (_) {}
-    }
-    return css ? `<style>${css}</style>` : '';
-  }
-
-  function downloadBlob(blob) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'latex-formula.png';
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
 
   function showToast() {
     copyToast.classList.remove('hidden', 'show');
