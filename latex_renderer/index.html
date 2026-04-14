@@ -61,6 +61,19 @@
 \begin{bmatrix} a & b \\ c & d \end{bmatrix}</textarea>
           <div id="autocomplete-dropdown" class="hidden"></div>
         </div>
+        <!-- OCR Panel -->
+        <div id="ocr-panel">
+          <div id="ocr-header">
+            <span>Image to LaTeX</span>
+            <span id="ocr-status"></span>
+          </div>
+          <div id="ocr-dropzone">
+            <input type="file" id="ocr-file-input" accept="image/*" hidden />
+            <p>Paste (Ctrl+V) or drag image here</p>
+            <button id="ocr-browse-btn">Browse</button>
+            <img id="ocr-preview" class="hidden" />
+          </div>
+        </div>
       </div>
 
       <!-- Right: Output -->
@@ -75,5 +88,6 @@
   <script src="js/snippets.js"></script>
   <script src="js/autocomplete.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/ocr.js"></script>
 </body>
 </html>

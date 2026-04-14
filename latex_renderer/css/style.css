@@ -382,3 +382,85 @@ html, body {
   background: #45475a;
   border-radius: 4px;
 }
+
+/* OCR Panel */
+#ocr-panel {
+  border-top: 1px solid #313244;
+  background: #181825;
+  flex-shrink: 0;
+}
+
+#ocr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #cba6f7;
+}
+
+#ocr-status {
+  font-size: 11px;
+  font-weight: 400;
+  color: #a6adc8;
+}
+
+#ocr-status.loading {
+  color: #f9e2af;
+}
+
+#ocr-status.error {
+  color: #f38ba8;
+}
+
+#ocr-status.success {
+  color: #a6e3a1;
+}
+
+#ocr-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  margin: 0 12px 12px;
+  border: 2px dashed #45475a;
+  border-radius: 6px;
+  min-height: 80px;
+  transition: border-color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+
+#ocr-dropzone.dragover {
+  border-color: #cba6f7;
+  background: rgba(203, 166, 247, 0.05);
+}
+
+#ocr-dropzone p {
+  font-size: 12px;
+  color: #585b70;
+  text-align: center;
+}
+
+#ocr-browse-btn {
+  padding: 4px 12px;
+  font-size: 11px;
+  background: #313244;
+  color: #cdd6f4;
+  border: 1px solid #45475a;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#ocr-browse-btn:hover {
+  background: #45475a;
+}
+
+#ocr-preview {
+  max-width: 100%;
+  max-height: 120px;
+  border-radius: 4px;
+  border: 1px solid #45475a;
+}
