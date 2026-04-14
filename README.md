@@ -2,7 +2,7 @@
 
 Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 
-각 프로그램은 별도의 하위 폴더로 관리됩니다. 실행하려면 **Node.js**가 필요합니다.
+각 프로그램은 별도의 하위 폴더로 관리됩니다. `.bat` 파일을 더블클릭하면 터미널 창 없이 브라우저에서 바로 실행됩니다.
 
 ---
 
@@ -83,9 +83,32 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 
 **실행**: `Robot Arm Simulator.bat` 더블클릭 (http://localhost:3005)
 
+### 7. LaTeX Renderer (`latex_renderer/`)
+LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
+
+- KaTeX 기반 실시간 수식 렌더링 (입력 즉시 변환)
+- 여러 수식 동시 렌더링 (빈 줄로 구분)
+- 자동 줄바꿈 (화면 너비에 맞춰 연산자 위치에서 줄바꿈)
+- 자동완성: `\` 입력 시 100+ LaTeX 명령어 후보 표시 (↑↓ 선택, Enter 확정)
+- 12개 단축 버튼: bmatrix, pmatrix, frac, sum, int, cases, aligned 등
+- 자주 쓰는 수식 저장/불러오기 (localStorage)
+- Font Size / Line Gap 슬라이더로 캡처용 크기 조절
+- Copy PNG 버튼으로 수식을 고해상도 이미지로 클립보드 복사
+- **Image → LaTeX OCR**: 논문/교재 수식 캡처 이미지를 LaTeX로 자동 변환 (pix2tex)
+
+**실행**: `LaTeX Renderer.bat` 더블클릭 (http://localhost:3006)
+**OCR 사용 시**: Python + `pip install pix2tex flask flask-cors` 필요
+
 ---
 
 ## 사전 요구사항
 
 - [Node.js](https://nodejs.org) 설치 (npx 명령어 사용)
-- [Python 3](https://www.python.org) (Quarter-Car 제어기 연동 시 필요, `pip install numpy`)
+- [Python 3](https://www.python.org) (Quarter-Car 제어기 연동, LaTeX OCR 사용 시 필요)
+
+## 실행 방법
+
+| 방법 | 설명 |
+|------|------|
+| `.bat` 더블클릭 | 터미널 창 없이 브라우저에서 바로 실행 |
+| `.exe` 더블클릭 | 독립 실행 파일 (Node.js 불필요) |
