@@ -99,6 +99,27 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 **실행**: `LaTeX Renderer.bat` 더블클릭 (http://localhost:3006)
 **OCR 사용 시**: Python + `pip install pix2tex flask flask-cors` 필요
 
+### 8. Conference Program Book (`conference-programbook/`)
+학회 제출 엑셀을 프로그램북 작업 파일로 자동 변환·검증하는 Python CLI 파이프라인
+
+- `input_raw.xlsx` (학회 submission 원본) → `program_book_working.xlsx` (다중 시트 통합 작업본)
+- "포맷팅 도우미" 설계: 완전 자동 배치가 아닌 사용자 배정값 검증 + 출력 시트 자동 생성
+- 6단계 파이프라인 (Step 5는 Step 4에 통합, 번호는 작업 이력 흔적)
+  - Step 1: 데이터 정제 (제목 병합, 중복 제거, 미등록/미납 분리, 발표분야 오타 교정)
+  - Step 2: 랩/소속 식별 (직위 기반 랩대표 판정, 4대 과기원 영문 약칭, `lab_id` 생성)
+  - Step 3: 제약조건 플래그 (다중 발표자, 특별 세션, 좌장 요청) + `입력_좌장Invited` 템플릿
+  - Step 4: 배정 검증 (배정값 오류·슬롯 중복·발표자 시간 충돌) + `설정_시간대`/`입력_논문배정` 템플릿
+  - Step 6: 최종 출력 (세션 코드 `KSME 26CA-...`, 구두/포스터 명단, 시간표 매트릭스, 세부일정, 포스터 세션 배치)
+- 시트 분류: 사용자 편집 시트(재실행 시 보존) / `_` 접두 중간 시트(덮어씀) / 최종 출력 시트(한글 복붙용)
+- 필요 패키지: `pandas`, `openpyxl`
+
+**실행** (브라우저·`.bat` 없음, 터미널 CLI 전용):
+```bash
+python conference-programbook/generate_program.py --init    # 최초 1회
+python conference-programbook/generate_program.py --step all
+```
+상세 내용은 [`conference-programbook/README.md`](conference-programbook/README.md) 참고.
+
 ---
 
 ## 사전 요구사항
