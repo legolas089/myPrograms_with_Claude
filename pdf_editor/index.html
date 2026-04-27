@@ -15,6 +15,7 @@
       <nav>
         <button class="tab-btn active" data-tab="merge">합치기</button>
         <button class="tab-btn" data-tab="split">분리 / 정렬</button>
+        <button class="tab-btn" data-tab="mergesort">합치기 / 정렬</button>
       </nav>
     </header>
 
@@ -81,6 +82,33 @@
       </div>
     </section>
   </div>
+
+    <!-- ── Merge+Sort Tab ── -->
+    <section id="tab-mergesort" class="tab-content">
+      <div class="drop-zone" id="ms-drop">
+        <div class="drop-icon">&#128203;</div>
+        <p>여러 PDF 파일을 드래그하거나 클릭하여 추가</p>
+        <button class="btn-add" id="ms-add-btn">파일 추가</button>
+        <input type="file" id="ms-file-input" accept=".pdf" multiple hidden>
+      </div>
+      <div id="ms-workspace" style="display:none">
+        <div id="ms-file-list" class="ms-file-list"></div>
+        <div class="page-toolbar">
+          <button class="btn-small" id="ms-select-all-btn">전체 선택</button>
+          <button class="btn-small" id="ms-deselect-all-btn">전체 해제</button>
+          <button class="btn-small" id="ms-invert-btn">선택 반전</button>
+          <span class="toolbar-divider"></span>
+          <span id="ms-selected-count"></span>
+          <span class="toolbar-divider"></span>
+          <span class="hint">드래그로 순서 변경 | 체크박스로 페이지 선택/제외</span>
+        </div>
+        <div id="ms-preview" class="page-preview"></div>
+        <div class="actions">
+          <button class="btn-primary" id="ms-save-btn">저장</button>
+          <button class="btn-secondary" id="ms-clear-btn">초기화</button>
+        </div>
+      </div>
+    </section>
 
   <div id="loading-overlay">
     <div class="spinner"></div>

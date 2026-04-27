@@ -23,3 +23,14 @@ export async function getPDFPageCount(data) {
   const doc = await PDFDocument.load(data);
   return doc.getPageCount();
 }
+
+export async function mergeReorderPages(filesData, pageList) {
+  // filesData: ArrayBuffer[], pageList: [{fileIdx, pageIdx (0-based)}]
+  const doc = await PDFDocument.create();
+  const srcs = await Promise.all(filesData.map(d => PDFDocument.load(d)));
+  for (const { fileIdx, pageIdx } of pageList) {
+    const [page] = await doc.copyPages(srcs[fileIdx], [pageIdx]);
+    doc.addPage(page);
+  }
+  return await doc.save();
+}
