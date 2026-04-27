@@ -352,14 +352,9 @@ function renderPageList() {
       e.preventDefault();
       thumb.classList.remove('drag-over-left', 'drag-over-right');
       const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
-      let toIdx = idx;
-      // Determine insert position based on drop side
       const rect = thumb.getBoundingClientRect();
-      const midX = rect.left + rect.width / 2;
-      if (e.clientX >= midX && toIdx < pageOrder.length - 1) {
-        toIdx = toIdx + 1;
-      }
-      if (fromIdx !== toIdx) {
+      let toIdx = e.clientX >= rect.left + rect.width / 2 ? idx + 1 : idx;
+      if (fromIdx !== toIdx && fromIdx !== toIdx - 1) {
         const [moved] = pageOrder.splice(fromIdx, 1);
         const insertAt = fromIdx < toIdx ? toIdx - 1 : toIdx;
         pageOrder.splice(insertAt, 0, moved);
