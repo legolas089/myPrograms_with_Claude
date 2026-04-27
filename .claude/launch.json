@@ -2,39 +2,39 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "step-viewer",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "step-viewer", "-p", "3000", "-c-1"],
+      "name": "step_viewer",
+      "runtimeExecutable": "pythonw",
+      "runtimeArgs": ["step_viewer/launcher.py"],
       "port": 3000
     },
     {
-      "name": "pdf-editor",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "pdf_editor", "-p", "3001", "-c-1"],
+      "name": "pdf_editor",
+      "runtimeExecutable": "pythonw",
+      "runtimeArgs": ["pdf_editor/launcher.py"],
       "port": 3001
     },
     {
-      "name": "quarter-car-sim",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "quarter_car_sim", "-p", "3002", "-c-1"],
+      "name": "quarter_car_sim",
+      "runtimeExecutable": "pythonw",
+      "runtimeArgs": ["quarter_car_sim/launcher.py"],
       "port": 3002
     },
     {
-      "name": "half-car-sim",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "half_car_sim", "-p", "3003", "-c-1"],
+      "name": "half_car_sim",
+      "runtimeExecutable": "pythonw",
+      "runtimeArgs": ["half_car_sim/launcher.py"],
       "port": 3003
     },
     {
-      "name": "roll-center-sim",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "roll_center_sim", "-p", "3004", "-c-1"],
+      "name": "roll_center_sim",
+      "runtimeExecutable": "pythonw",
+      "runtimeArgs": ["roll_center_sim/launcher.py"],
       "port": 3004
     },
     {
-      "name": "robot-arm-sim",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "robot_arm_sim", "-p", "3005", "-c-1"],
+      "name": "robot_arm_sim",
+      "runtimeExecutable": "pythonw",
+      "runtimeArgs": ["robot_arm_sim/server.py"],
       "port": 3005
     },
     {

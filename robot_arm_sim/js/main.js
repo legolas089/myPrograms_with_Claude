@@ -1,9 +1,12 @@
 // main.js — State management, UI events, animation loop
 
-import { inverseKinematics, isReachable, workspaceBoundary } from './kinematics.js';
+import { inverseKinematics, isReachable, workspaceBoundary, forwardKinematics } from './kinematics.js';
 import { generateAllPaths } from './pathPlanning.js';
 import { ArmRenderer } from './renderer.js';
 import { JointSpaceGraph, CartesianGraph } from './graphs.js';
+import { initHelp } from './help.js';
+
+initHelp();
 
 // ── State ──
 const state = {
@@ -46,6 +49,7 @@ const btnReset = document.getElementById('btn-reset');
 const btnPlay = document.getElementById('btn-play');
 const btnPrev = document.getElementById('btn-prev');
 const btnNext = document.getElementById('btn-next');
+const btnExportCsv = document.getElementById('btn-export-csv');
 const warningMsg = document.getElementById('warning-msg');
 const pathListContainer = document.getElementById('path-list-container');
 
@@ -127,6 +131,7 @@ function updateResults() {
     resRank.textContent = '-';
     resLimitStatus.textContent = '-';
     resLimitStatus.className = 'result-value';
+    btnExportCsv.disabled = true;
     return;
   }
   resStrategy.textContent = path.name;
@@ -142,6 +147,7 @@ function updateResults() {
     resLimitStatus.textContent = state.jointLimitsEnabled ? 'OK' : '-';
     resLimitStatus.className = 'result-value' + (state.jointLimitsEnabled ? ' limit-ok' : '');
   }
+  btnExportCsv.disabled = state.paths.length === 0;
 }
 
 function buildPathList() {
@@ -358,6 +364,48 @@ btnNext.addEventListener('click', () => {
   buildPathList();
   redraw();
 });
+
+function exportSelectedPathAsCsv() {
+  const path = state.paths[state.selectedPathIndex];
+  if (!path) return;
+
+  const totalTime = 2 / state.animSpeed;
+  const RAD2DEG = 180 / Math.PI;
+
+  const header = 't,time_s,theta1_rad,theta1_deg,theta2_rad,theta2_deg,x,y';
+  const rows = path.waypoints.map(wp => {
+    const fk = forwardKinematics(wp.theta1, wp.theta2, state.L1, state.L2);
+    const values = [
+      wp.t,
+      wp.t * totalTime,
+      wp.theta1,
+      wp.theta1 * RAD2DEG,
+      wp.theta2,
+      wp.theta2 * RAD2DEG,
+      fk.endEffector.x,
+      fk.endEffector.y
+    ];
+    return values.map(v => v.toFixed(6)).join(',');
+  });
+  const csv = [header, ...rows].join('\n') + '\n';
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ts = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const filename = `robot_arm_path_${path.strategy}_${ts}.csv`;
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+btnExportCsv.addEventListener('click', exportSelectedPathAsCsv);
 
 // ── Canvas Dragging ──
 const canvas = document.getElementById('anim-canvas');

@@ -8,7 +8,7 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 
 ## 프로그램 목록
 
-### 1. STEP Viewer (`step-viewer/`)
+### 1. STEP Viewer (`step_viewer/`)
 3D CAD 파일(.step, .stp) 뷰어
 
 - 드래그 & 드롭 또는 버튼으로 STEP 파일 로드
@@ -18,7 +18,7 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 - 거리 측정 도구 (점/선/면 조합)
 - 마우스 드래그 회전, 스크롤 줌, 우클릭 팬
 
-**실행**: `STEP Viewer.bat` 더블클릭 (http://localhost:3000)
+**실행**: `STEP Viewer.bat` 또는 `dist/STEPViewer.exe` 더블클릭 (http://localhost:3000)
 
 ### 2. PDF Editor (`pdf_editor/`)
 PDF 합치기, 분리, 페이지 순서 변경 도구
@@ -29,7 +29,7 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
   - 선택한 페이지를 각각 개별 PDF로 분리
   - 페이지 범위 지정 분리 (예: 1-3, 5, 7-10)
 
-**실행**: `PDF Editor.bat` 더블클릭 (http://localhost:3001)
+**실행**: `PDF Editor.bat` 또는 `dist/PDFEditor.exe` 더블클릭 (http://localhost:3001)
 
 ### 3. Quarter-Car Suspension Simulator (`quarter_car_sim/`)
 2-DOF 쿼터카 서스펜션 시뮬레이터
@@ -42,7 +42,7 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 - Python 제어기 연동: `server.py`의 `control_law()` 함수만 수정하여 Passive vs Active 비교
 - 독립 실행 스크립트: PID / Skyhook 제어기 → JSON 결과 내보내기
 
-**실행**: `Quarter-Car Sim.bat` 더블클릭 (http://localhost:3002)
+**실행**: `Quarter-Car Sim.bat` 또는 `dist/QuarterCarSim.exe` 더블클릭 (http://localhost:3002)
 
 ### 4. Half-Car Suspension Simulator (`half_car_sim/`)
 4-DOF 하프카 서스펜션 시뮬레이터
@@ -55,7 +55,7 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 - Set A vs Set B 비교 모드, 프리셋 (승용차/SUV/스포츠카)
 - 12개 파라미터 슬라이더 + 전/후 댐핑비·고유진동수·피치 고유진동수 실시간 표시
 
-**실행**: `Half-Car Sim.bat` 더블클릭 (http://localhost:3003)
+**실행**: `Half-Car Sim.bat` 또는 `dist/HalfCarSim.exe` 더블클릭 (http://localhost:3003)
 
 ### 5. Roll Center Simulator (`roll_center_sim/`)
 더블 위시본 서스펜션 프론트뷰 기구학 시뮬레이터
@@ -68,7 +68,7 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 - Vehicle Spec 토글: CG Height, Mass, Lateral G 입력 → Load Transfer, Jacking Force
 - Set A vs Set B 비교 모드, 프리셋 (Stock Sedan/Lowered/High RC/Parallel)
 
-**실행**: `Roll Center Sim.bat` 더블클릭 (http://localhost:3004)
+**실행**: `Roll Center Sim.bat` 또는 `dist/RollCenterSim.exe` 더블클릭 (http://localhost:3004)
 
 ### 6. 2D Robot Arm Simulator (`robot_arm_sim/`)
 2관절 평면 로봇 암 경로 탐색 시뮬레이터
@@ -81,7 +81,7 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 - 3개 뷰 동시 시각화: 메인 캔버스(로봇 암 + 경로), 관절공간 플롯(θ1 vs θ2), 카테시안 궤적 플롯
 - A/B 위치 캔버스 드래그, 경로 선택/애니메이션 재생
 
-**실행**: `Robot Arm Simulator.bat` 더블클릭 (http://localhost:3005)
+**실행**: `Robot Arm Simulator.bat` 또는 `dist/RobotArmSimulator.exe` 더블클릭 (http://localhost:3005)
 
 ### 7. LaTeX Renderer (`latex_renderer/`)
 LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
@@ -99,7 +99,7 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 **실행**: `LaTeX Renderer.bat` 더블클릭 (http://localhost:3006)
 **OCR 사용 시**: Python + `pip install pix2tex flask flask-cors` 필요
 
-### 8. Conference Program Book (`conference-programbook/`)
+### 8. Conference Program Book (`conference_programbook/`)
 학회 제출 엑셀을 프로그램북 작업 파일로 자동 변환·검증하는 Python CLI 파이프라인
 
 - `input_raw.xlsx` (학회 submission 원본) → `program_book_working.xlsx` (다중 시트 통합 작업본)
@@ -115,10 +115,10 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
 **실행** (브라우저·`.bat` 없음, 터미널 CLI 전용):
 ```bash
-python conference-programbook/generate_program.py --init    # 최초 1회
-python conference-programbook/generate_program.py --step all
+python conference_programbook/generate_program.py --init    # 최초 1회
+python conference_programbook/generate_program.py --step all
 ```
-상세 내용은 [`conference-programbook/README.md`](conference-programbook/README.md) 참고.
+상세 내용은 [`conference_programbook/README.md`](conference_programbook/README.md) 참고.
 
 ---
 
