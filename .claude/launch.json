@@ -42,6 +42,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "latex_renderer", "-p", "3006", "-c-1"],
       "port": 3006
+    },
+    {
+      "name": "cad_modeler",
+      "runtimeExecutable": "pythonw",
+      "runtimeArgs": ["cad_modeler/launcher.py"],
+      "port": 3007
     }
   ]
 }

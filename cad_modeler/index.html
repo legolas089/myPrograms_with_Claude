@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple CAD Modeler</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.175.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.175.0/examples/jsm/",
+      "three-mesh-bvh": "https://esm.sh/three-mesh-bvh@0.7.8?external=three",
+      "three-bvh-csg": "https://esm.sh/three-bvh-csg@0.0.16?external=three,three-mesh-bvh"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <p id="loading-text">CAD 커널 로딩 중... (최초 1회 ~30MB 다운로드)</p>
+  </div>
+
+  <div id="sidebar">
+    <h2>Outliner</h2>
+    <div id="tree-container"></div>
+    <div id="sidebar-footer">
+      <button id="btn-rename" title="이름 변경 (F2)">이름</button>
+      <button id="btn-toggle-vis" title="표시/숨김 (V)">표시</button>
+      <button id="btn-delete" title="삭제 (Del)">삭제</button>
+    </div>
+  </div>
+
+  <div id="viewer-container">
+    <div id="toolbar">
+      <div class="toolbar-group">
+        <span class="group-label">생성</span>
+        <button class="tb-btn" data-action="add-box" title="박스 추가">&#9633; Box</button>
+        <button class="tb-btn" data-action="add-cylinder" title="실린더 추가">&#9711; Cyl</button>
+        <button class="tb-btn" data-action="add-sphere" title="구 추가">&#9679; Sph</button>
+        <button class="tb-btn" data-action="add-cone" title="원뿔 추가">&#9650; Cone</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="group-label">Boolean</span>
+        <button class="tb-btn" data-action="bool-union" title="합집합">&cup; Union</button>
+        <button class="tb-btn" data-action="bool-subtract" title="차집합">&minus; Cut</button>
+        <button class="tb-btn" data-action="bool-intersect" title="교집합">&cap; Int</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="group-label">파일</span>
+        <button class="tb-btn" data-action="save-json" title="JSON 저장 (Ctrl+S)">&#128190; Save</button>
+        <button class="tb-btn" data-action="load-json" title="JSON 불러오기 (Ctrl+O)">&#128193; Load</button>
+        <button class="tb-btn" data-action="export-stl" title="STL 내보내기">STL</button>
+        <button class="tb-btn" data-action="export-step" title="STEP 내보내기">STEP</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="group-label">기록</span>
+        <button class="tb-btn" data-action="undo" title="되돌리기 (Ctrl+Z)">&#8630; Undo</button>
+        <button class="tb-btn" data-action="redo" title="재실행 (Ctrl+Y)">&#8631; Redo</button>
+      </div>
+      <div class="toolbar-group">
+        <span class="group-label">표시</span>
+        <button class="tb-btn toggle" data-action="toggle-grid" data-pressed="true" title="그리드">Grid</button>
+        <button class="tb-btn toggle" data-action="toggle-dims" data-pressed="true" title="치수 표시">Dim</button>
+      </div>
+    </div>
+
+    <canvas id="viewer-canvas"></canvas>
+
+    <div id="transform-panel">
+      <h3 id="tp-title">선택 없음</h3>
+      <div class="tp-row">
+        <span class="tp-lbl">위치</span>
+        <input type="number" step="0.5" id="tp-px" placeholder="X">
+        <input type="number" step="0.5" id="tp-py" placeholder="Y">
+        <input type="number" step="0.5" id="tp-pz" placeholder="Z">
+      </div>
+      <div class="tp-row">
+        <span class="tp-lbl">회전°</span>
+        <input type="number" step="5" id="tp-rx" placeholder="X">
+        <input type="number" step="5" id="tp-ry" placeholder="Y">
+        <input type="number" step="5" id="tp-rz" placeholder="Z">
+      </div>
+      <div class="tp-row">
+        <span class="tp-lbl">크기</span>
+        <input type="number" step="0.1" id="tp-sx" placeholder="X">
+        <input type="number" step="0.1" id="tp-sy" placeholder="Y">
+        <input type="number" step="0.1" id="tp-sz" placeholder="Z">
+      </div>
+      <div id="tp-params"></div>
+      <div id="tp-dims"></div>
+    </div>
+
+    <div id="status-bar">
+      <span id="status-text">준비됨</span>
+      <span id="status-count">0개 도형</span>
+    </div>
+  </div>
+
+  <!-- Primitive 파라미터 다이얼로그 -->
+  <div id="prim-dialog" class="dialog hidden">
+    <div class="dialog-box">
+      <h3 id="prim-title">Box 추가</h3>
+      <div id="prim-fields"></div>
+      <div class="dialog-buttons">
+        <button id="prim-ok">확인</button>
+        <button id="prim-cancel">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="json-file-input" accept=".json" hidden>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

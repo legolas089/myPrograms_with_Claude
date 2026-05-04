@@ -99,7 +99,23 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 **실행**: `LaTeX Renderer.bat` 더블클릭 (http://localhost:3006)
 **OCR 사용 시**: Python + `pip install pix2tex flask flask-cors` 필요
 
-### 8. Conference Program Book (`conference_programbook/`)
+### 8. Simple CAD Modeler (`cad_modeler/`)
+간단한 3D 모델링 워크벤치 — 박스/실린더/구/원뿔을 만들고 합치고 빼고 STL/STEP으로 저장
+
+- **기본 도형 생성**: Box, Cylinder, Sphere, Cone (파라미터 입력 다이얼로그)
+- **Transform**: 위치/회전/크기 — 수치 입력 패널로 정밀 편집
+- **Boolean 연산**: Union(합집합), Subtract(차), Intersect(교집합) — three-bvh-csg 기반
+- **Outliner**: 좌측 계층 트리 — 선택, 표시/숨김, 더블클릭 이름변경
+- **그리드 + 치수 표시**: 우측 패널에 선택 도형의 bbox/중심/삼각형 수
+- **Undo/Redo** (Ctrl+Z, Ctrl+Y): 작업 스택 기반 명령 패턴
+- **JSON 저장/불러오기** (Ctrl+S, Ctrl+O): 명령 트리를 직렬화 — 재로드 후에도 STEP 재생성 가능
+- **STL 내보내기**: ASCII STL (Three.js STLExporter)
+- **STEP 내보내기**: ISO-10303-21 AP214 Faceted BREP — `step_viewer`로 다시 열어 왕복 검증 가능
+- **단축키**: F = 카메라 프레이밍, Del = 삭제
+
+**실행**: `CAD Modeler.bat` 또는 `dist/CADModeler.exe` 더블클릭 (http://localhost:3007)
+
+### 9. Conference Program Book (`conference_programbook/`)
 학회 제출 엑셀을 프로그램북 작업 파일로 자동 변환·검증하는 Python CLI 파이프라인
 
 - `input_raw.xlsx` (학회 submission 원본) → `program_book_working.xlsx` (다중 시트 통합 작업본)
