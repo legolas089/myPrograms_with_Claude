@@ -59,8 +59,10 @@ function downloadBlob(bytes, filename) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 function downloadZip(files) {
@@ -405,7 +407,8 @@ splitBtn.addEventListener('click', async () => {
     .filter(p => p.selected)
     .map(p => p.origPage - 1);
 
-  if (selectedPages.length === 0) {
+  // Range mode reads from text input and ignores page selection — skip the check for it
+  if (mode !== 'range' && selectedPages.length === 0) {
     return alert('최소 1개 페이지를 선택하세요.');
   }
 
@@ -422,7 +425,11 @@ splitBtn.addEventListener('click', async () => {
       }
       downloadZip(results);
     } else if (mode === 'range') {
-      const rangeText = document.getElementById('split-range').value;
+      const rangeText = document.getElementById('split-range').value.trim();
+      if (!rangeText) {
+        hideLoading();
+        return alert('페이지 범위를 입력하세요.');
+      }
       const results = await splitByRanges(splitFile.data, rangeText);
       results.forEach(r => r.label = `${baseName}_${r.label}`);
       downloadZip(results);
