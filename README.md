@@ -83,7 +83,21 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 
 **실행**: `Robot Arm Simulator.bat` 또는 `dist/RobotArmSimulator.exe` 더블클릭 (http://localhost:3005)
 
-### 7. LaTeX Renderer (`latex_renderer/`)
+### 7. 3D 3-DOF Robot Arm Simulator (`robot_arm_sim_3D_3DOF/`)
+수직다관절 3-DOF 로봇 암 경로 탐색 시뮬레이터 (2D 버전의 3차원 확장)
+
+- 자유도 3: J1(베이스 회전, Z축) + J2(상완 피치) + J3(전완 피치)
+- 정기구학: `r = L1·cos(θ2) + L2·cos(θ2+θ3)`, `x=r·cosθ1`, `y=r·sinθ1`, `z=h0+L1·sinθ2+L2·sin(θ2+θ3)`
+- 토러스 형태 작업공간 시각화 (`|L1−L2| ≤ r ≤ L1+L2`)
+- 6가지 경로 전략 (2D 버전과 동일, 3-DOF 일반화): MoveJ, MoveL, Via-Point Spline, Elbow Switch, Cubic Polynomial, Circular Arc
+- IK 2해 (Elbow-Up / Elbow-Down), 관절 가동 제한(θ1/θ2/θ3 min/max) 위반 검사
+- Three.js 인터랙티브 3D 뷰: Iso/Top/Front/Side 프리셋, OrbitControls (orbit/pan/zoom), A/B 마커 XY-평면 raycast 드래그
+- 3개 2D 그래프: θ1·θ2 / θ2·θ3 관절공간 + X·Y top-view 카테시안 궤적
+- CSV 내보내기: t, θ1·θ2·θ3 (rad/deg), x·y·z
+
+**실행**: `Robot Arm Simulator 3D.bat` 더블클릭 (http://localhost:3008)
+
+### 8. LaTeX Renderer (`latex_renderer/`)
 LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
 - KaTeX 기반 실시간 수식 렌더링 (입력 즉시 변환)
@@ -99,7 +113,7 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 **실행**: `LaTeX Renderer.bat` 더블클릭 (http://localhost:3006)
 **OCR 사용 시**: Python + `pip install pix2tex flask flask-cors` 필요
 
-### 8. Simple CAD Modeler (`cad_modeler/`)
+### 9. Simple CAD Modeler (`cad_modeler/`)
 간단한 3D 모델링 워크벤치 — 박스/실린더/구/원뿔을 만들고 합치고 빼고 STL/STEP으로 저장
 
 - **기본 도형 생성**: Box, Cylinder, Sphere, Cone (파라미터 입력 다이얼로그)
@@ -115,7 +129,7 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
 **실행**: `CAD Modeler.bat` 또는 `dist/CADModeler.exe` 더블클릭 (http://localhost:3007)
 
-### 9. Conference Program Book (`conference_programbook/`)
+### 10. Conference Program Book (`conference_programbook/`)
 학회 제출 엑셀을 프로그램북 작업 파일로 자동 변환·검증하는 Python CLI 파이프라인
 
 - `input_raw.xlsx` (학회 submission 원본) → `program_book_working.xlsx` (다중 시트 통합 작업본)
