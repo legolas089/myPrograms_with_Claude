@@ -48,6 +48,12 @@
       "runtimeExecutable": "pythonw",
       "runtimeArgs": ["cad_modeler/launcher.py"],
       "port": 3007
+    },
+    {
+      "name": "robot_arm_sim_3D_3DOF",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "robot_arm_sim_3D_3DOF", "-p", "3009", "-c-1"],
+      "port": 3009
     }
   ]
 }
