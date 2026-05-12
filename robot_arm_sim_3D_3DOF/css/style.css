@@ -122,6 +122,19 @@ body {
   font-size: 12px; font-weight: 600; color: #4fc3f7;
   min-width: 48px; text-align: right; font-variant-numeric: tabular-nums;
 }
+.param-num {
+  width: 56px; padding: 2px 4px;
+  font-size: 12px; font-weight: 600; color: #4fc3f7;
+  background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 3px;
+  text-align: right; font-variant-numeric: tabular-nums;
+  outline: none; font-family: inherit;
+}
+.param-num:focus { border-color: #0078d4; background: #1f2730; }
+.param-num::-webkit-inner-spin-button,
+.param-num::-webkit-outer-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+.param-num { -moz-appearance: textfield; }
 .unit { font-size: 10px; color: #777; min-width: 24px; }
 
 .controls { display: flex; gap: 8px; }

@@ -97,12 +97,50 @@ function fmt(value) {
 
 function setSlider(key, value) {
   if (sliders[key]) sliders[key].value = value;
-  if (vals[key]) vals[key].textContent = fmt(value);
+  writeDisplay(key, value);
 }
 
 function updateSliderDisplay(key, value) {
-  if (vals[key]) vals[key].textContent = fmt(value);
+  writeDisplay(key, value);
 }
+
+// Write a value into the display element (either a span or a number input).
+// Skip writing while the user is actively editing the input to avoid
+// stomping on their typing cursor.
+function writeDisplay(key, value) {
+  const el = vals[key];
+  if (!el) return;
+  if (el.tagName === 'INPUT') {
+    if (document.activeElement === el) return;
+    el.value = fmt(value);
+  } else {
+    el.textContent = fmt(value);
+  }
+}
+
+// Wire number-input editors for the 9 arm/position parameters.
+// Typing fires `change` (on blur/Enter) and routes through the existing
+// slider's `input` handler after clamping to slider min/max.
+const NUM_INPUT_KEYS = ['h0', 'L1', 'L2', 'xA', 'yA', 'zA', 'xB', 'yB', 'zB'];
+NUM_INPUT_KEYS.forEach(k => {
+  const input = vals[k];
+  const slider = sliders[k];
+  if (!input || input.tagName !== 'INPUT' || !slider) return;
+  input.addEventListener('change', () => {
+    let v = parseFloat(input.value);
+    if (!Number.isFinite(v)) {
+      input.value = fmt(parseFloat(slider.value));
+      return;
+    }
+    const min = parseFloat(slider.min);
+    const max = parseFloat(slider.max);
+    v = Math.min(max, Math.max(min, v));
+    slider.value = v;
+    slider.dispatchEvent(new Event('input'));
+  });
+  // Select all on focus for easy overwrite typing
+  input.addEventListener('focus', () => input.select());
+});
 
 function syncSlidersFromState() {
   setSlider('h0', state.h0);
