@@ -12,16 +12,39 @@ const PATH_COLORS = [
   '#fab1a0', '#74b9ff', '#ffa502', '#2ed573', '#ff4757'
 ];
 
-const NUM_WAYPOINTS = 80;
+// ── Timing policy ──
+// Each waypoint represents DT_SECONDS of real motion. The slowest joint moves at
+// at most MAX_JOINT_SPEED_RAD; total path time scales with the largest |Δθ|.
+// Path shape is unchanged per strategy — only the waypoint count and the
+// associated real-time duration vary.
+export const DT_SECONDS = 0.01;                        // 10 ms time step
+export const MAX_JOINT_SPEED_DEG = 20;                 // deg / s
+export const MAX_JOINT_SPEED_RAD = MAX_JOINT_SPEED_DEG * Math.PI / 180;
+const MIN_WAYPOINTS = 2;
+const MAX_WAYPOINTS = 5000;                            // safety cap (~50 s)
+
+// Compute (N waypoints, totalTime in seconds) so that the slowest joint runs at
+// MAX_JOINT_SPEED_RAD. The path is sampled at DT_SECONDS intervals.
+function computeTiming(qA, qB) {
+  const d1 = Math.abs(shortestAngleDiff(qA.t1, qB.t1));
+  const d2 = Math.abs(shortestAngleDiff(qA.t2, qB.t2));
+  const d3 = Math.abs(shortestAngleDiff(qA.t3, qB.t3));
+  const dmax = Math.max(d1, d2, d3);
+  // Floor to one dt so trivial (zero-displacement) paths still produce 2 waypoints.
+  const totalTime = Math.max(DT_SECONDS, dmax / MAX_JOINT_SPEED_RAD);
+  const N = Math.max(MIN_WAYPOINTS, Math.min(MAX_WAYPOINTS, Math.round(totalTime / DT_SECONDS) + 1));
+  return { N, totalTime };
+}
 
 // ── Strategy 1: Joint-Space Linear Interpolation (MoveJ / PTP) ──
 function jointLinear(qA, qB, configLabel) {
   const d1 = shortestAngleDiff(qA.t1, qB.t1);
   const d2 = shortestAngleDiff(qA.t2, qB.t2);
   const d3 = shortestAngleDiff(qA.t3, qB.t3);
+  const { N, totalTime } = computeTiming(qA, qB);
   const waypoints = [];
-  for (let i = 0; i < NUM_WAYPOINTS; i++) {
-    const t = i / (NUM_WAYPOINTS - 1);
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
     waypoints.push({
       t1: qA.t1 + d1 * t,
       t2: qA.t2 + d2 * t,
@@ -29,14 +52,17 @@ function jointLinear(qA, qB, configLabel) {
       t
     });
   }
-  return { name: `Joint Linear (${configLabel})`, strategy: 'jointLinear', waypoints };
+  return { name: `Joint Linear (${configLabel})`, strategy: 'jointLinear', waypoints, totalTime };
 }
 
 // ── Strategy 2: Cartesian Linear Interpolation (MoveL / LIN) ──
-function cartesianLinear(posA, posB, h0, L1, L2, configLabel, elbowMode) {
+function cartesianLinear(posA, posB, h0, L1, L2, configLabel, elbowMode, ikA, ikB) {
+  const qA = elbowMode === 'up' ? ikA.elbowUp : ikA.elbowDown;
+  const qB = elbowMode === 'up' ? ikB.elbowUp : ikB.elbowDown;
+  const { N, totalTime } = computeTiming(qA, qB);
   const waypoints = [];
-  for (let i = 0; i < NUM_WAYPOINTS; i++) {
-    const t = i / (NUM_WAYPOINTS - 1);
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
     const x = posA.x + (posB.x - posA.x) * t;
     const y = posA.y + (posB.y - posA.y) * t;
     const z = posA.z + (posB.z - posA.z) * t;
@@ -45,11 +71,11 @@ function cartesianLinear(posA, posB, h0, L1, L2, configLabel, elbowMode) {
     const sol = elbowMode === 'up' ? ik.elbowUp : ik.elbowDown;
     waypoints.push({ t1: sol.t1, t2: sol.t2, t3: sol.t3, t });
   }
-  return { name: `Cartesian Linear (${configLabel})`, strategy: 'cartesianLinear', waypoints };
+  return { name: `Cartesian Linear (${configLabel})`, strategy: 'cartesianLinear', waypoints, totalTime };
 }
 
 // ── Strategy 3: Via-Point (3D quadratic Bezier through random offset point) ──
-function viaPoint(posA, posB, h0, L1, L2, elbowMode, viaIdx) {
+function viaPoint(posA, posB, h0, L1, L2, elbowMode, viaIdx, ikA, ikB) {
   const reach = L1 + L2;
   const rInner = Math.abs(L1 - L2);
   const mid = {
@@ -101,9 +127,13 @@ function viaPoint(posA, posB, h0, L1, L2, elbowMode, viaIdx) {
     { x: posB.x, y: posB.y, z: posB.z }
   ];
 
+  const qA = elbowMode === 'up' ? ikA.elbowUp : ikA.elbowDown;
+  const qB = elbowMode === 'up' ? ikB.elbowUp : ikB.elbowDown;
+  const { N, totalTime } = computeTiming(qA, qB);
+
   const waypoints = [];
-  for (let i = 0; i < NUM_WAYPOINTS; i++) {
-    const t = i / (NUM_WAYPOINTS - 1);
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
     const u = 1 - t;
     const x = u * u * pts[0].x + 2 * u * t * pts[1].x + t * t * pts[2].x;
     const y = u * u * pts[0].y + 2 * u * t * pts[1].y + t * t * pts[2].y;
@@ -113,15 +143,21 @@ function viaPoint(posA, posB, h0, L1, L2, elbowMode, viaIdx) {
     const sol = elbowMode === 'up' ? ik.elbowUp : ik.elbowDown;
     waypoints.push({ t1: sol.t1, t2: sol.t2, t3: sol.t3, t });
   }
-  return { name: `Via-Point #${viaIdx}`, strategy: 'viaPoint', waypoints };
+  return { name: `Via-Point #${viaIdx}`, strategy: 'viaPoint', waypoints, totalTime };
 }
 
 // ── Strategy 4: Elbow Configuration Switching ──
 // Cartesian-linear position with sigmoid blend between elbow-up and elbow-down IK solutions.
-function elbowSwitch(posA, posB, h0, L1, L2, reverse = false) {
+function elbowSwitch(posA, posB, h0, L1, L2, reverse, ikA, ikB) {
+  // Endpoints cross the elbow configuration, so timing is computed against
+  // the actual start/end joint configs (e.g. ikA.elbowUp → ikB.elbowDown).
+  const qStart = reverse ? ikA.elbowDown : ikA.elbowUp;
+  const qEnd   = reverse ? ikB.elbowUp   : ikB.elbowDown;
+  const { N, totalTime } = computeTiming(qStart, qEnd);
+
   const waypoints = [];
-  for (let i = 0; i < NUM_WAYPOINTS; i++) {
-    const t = i / (NUM_WAYPOINTS - 1);
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
     const x = posA.x + (posB.x - posA.x) * t;
     const y = posA.y + (posB.y - posA.y) * t;
     const z = posA.z + (posB.z - posA.z) * t;
@@ -138,7 +174,7 @@ function elbowSwitch(posA, posB, h0, L1, L2, reverse = false) {
     waypoints.push({ t1, t2, t3, t });
   }
   const name = reverse ? 'Elbow Switch (Down→Up)' : 'Elbow Switch (Up→Down)';
-  return { name, strategy: 'elbowSwitch', waypoints };
+  return { name, strategy: 'elbowSwitch', waypoints, totalTime };
 }
 
 // ── Strategy 5: Cubic Polynomial with varied boundary velocities ──
@@ -160,9 +196,10 @@ function cubicPolynomial(qA, qB, label, v0Scale, v1Scale) {
   const c2 = cubicCoeffs(qA.t2, qA.t2 + d2, d2 * v0Scale, d2 * v1Scale);
   const c3 = cubicCoeffs(qA.t3, qA.t3 + d3, d3 * v0Scale, d3 * v1Scale);
 
+  const { N, totalTime } = computeTiming(qA, qB);
   const waypoints = [];
-  for (let i = 0; i < NUM_WAYPOINTS; i++) {
-    const t = i / (NUM_WAYPOINTS - 1);
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
     const tt = t * t, ttt = tt * t;
     waypoints.push({
       t1: c1[0] + c1[1] * t + c1[2] * tt + c1[3] * ttt,
@@ -171,7 +208,7 @@ function cubicPolynomial(qA, qB, label, v0Scale, v1Scale) {
       t
     });
   }
-  return { name: `Cubic Poly (${label})`, strategy: 'cubicPoly', waypoints };
+  return { name: `Cubic Poly (${label})`, strategy: 'cubicPoly', waypoints, totalTime };
 }
 
 // ── Strategy 6: Circular Arc in joint-space ──
@@ -205,9 +242,10 @@ function circularArc(qA, qB, offsetFactor, axisIdx) {
   const mid2 = qA.t2 + d2 * 0.5 + axis[1] * offsetFactor;
   const mid3 = qA.t3 + d3 * 0.5 + axis[2] * offsetFactor;
 
+  const { N, totalTime } = computeTiming(qA, qB);
   const waypoints = [];
-  for (let i = 0; i < NUM_WAYPOINTS; i++) {
-    const t = i / (NUM_WAYPOINTS - 1);
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
     const ut = 1 - t;
     waypoints.push({
       t1: ut*ut * qA.t1 + 2*ut*t * mid1 + t*t * (qA.t1 + d1),
@@ -221,7 +259,8 @@ function circularArc(qA, qB, offsetFactor, axisIdx) {
   return {
     name: `Arc ${ax}${sign}${Math.abs(offsetFactor).toFixed(1)}`,
     strategy: 'circularArc',
-    waypoints
+    waypoints,
+    totalTime
   };
 }
 
@@ -298,21 +337,21 @@ export function generateAllPaths(posA, posB, h0, L1, L2, numPaths, enabledStrate
   }
 
   if (enabledStrategies.cartesianLinear) {
-    addPath(cartesianLinear(posA, posB, h0, L1, L2, 'Up', 'up'));
-    addPath(cartesianLinear(posA, posB, h0, L1, L2, 'Down', 'down'));
+    addPath(cartesianLinear(posA, posB, h0, L1, L2, 'Up', 'up', ikA, ikB));
+    addPath(cartesianLinear(posA, posB, h0, L1, L2, 'Down', 'down', ikA, ikB));
   }
 
   if (enabledStrategies.viaPoint) {
     const nVia = Math.max(1, Math.floor((numPaths - 6) * 0.4));
     for (let v = 0; v < nVia; v++) {
       const mode = v % 2 === 0 ? 'up' : 'down';
-      addPath(viaPoint(posA, posB, h0, L1, L2, mode, v + 1));
+      addPath(viaPoint(posA, posB, h0, L1, L2, mode, v + 1, ikA, ikB));
     }
   }
 
   if (enabledStrategies.elbowSwitch) {
-    addPath(elbowSwitch(posA, posB, h0, L1, L2, false));
-    addPath(elbowSwitch(posA, posB, h0, L1, L2, true));
+    addPath(elbowSwitch(posA, posB, h0, L1, L2, false, ikA, ikB));
+    addPath(elbowSwitch(posA, posB, h0, L1, L2, true, ikA, ikB));
   }
 
   if (enabledStrategies.cubicPoly) {

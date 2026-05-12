@@ -73,6 +73,8 @@ const cbShowWorkspace = document.getElementById('cb-show-workspace');
 const cbShowGrid = document.getElementById('cb-show-grid');
 
 const resStrategy = document.getElementById('res-strategy');
+const resDuration = document.getElementById('res-duration');
+const resWaypoints = document.getElementById('res-waypoints');
 const resJointTravel = document.getElementById('res-joint-travel');
 const resCartesianLen = document.getElementById('res-cartesian-len');
 const resSmoothness = document.getElementById('res-smoothness');
@@ -201,6 +203,8 @@ function updateResults() {
   const path = state.paths[state.selectedPathIndex];
   if (!path) {
     resStrategy.textContent = '-';
+    resDuration.textContent = '-';
+    resWaypoints.textContent = '-';
     resJointTravel.textContent = '-';
     resCartesianLen.textContent = '-';
     resSmoothness.textContent = '-';
@@ -212,6 +216,8 @@ function updateResults() {
     return;
   }
   resStrategy.textContent = path.name;
+  resDuration.textContent = (path.totalTime ?? 0).toFixed(2) + ' s';
+  resWaypoints.textContent = String(path.waypoints.length);
   resJointTravel.textContent = path.jointTravel.toFixed(2) + ' rad';
   resCartesianLen.textContent = path.cartesianLen.toFixed(3) + ' m';
   resSmoothness.textContent = path.smoothness.toFixed(3);
@@ -468,7 +474,9 @@ function exportSelectedPathAsCsv() {
   const path = state.paths[state.selectedPathIndex];
   if (!path) return;
 
-  const totalTime = 2 / state.animSpeed;
+  // Each waypoint is dt=0.01s apart; total time comes from the timing policy
+  // (max(|Δθ_i|) / 20°/s). The animation speed slider does not affect CSV time.
+  const totalTime = path.totalTime || (path.waypoints.length - 1) * 0.01;
   const header = [
     't', 'time_s',
     't1_rad', 't1_deg', 't2_rad', 't2_deg', 't3_rad', 't3_deg',
@@ -556,7 +564,11 @@ function animate(time) {
 
   if (state.isPlaying && state.paths.length > 0) {
     const dt = lastTime ? (time - lastTime) / 1000 : 0;
-    state.animProgress += dt * state.animSpeed * 0.4;
+    const path = state.paths[state.selectedPathIndex];
+    // Real-time playback: path.totalTime is the duration at 1× speed (derived from
+    // max(|Δθ|) / 20°/s policy). animSpeed lets the user override.
+    const T = Math.max(0.001, path.totalTime || 1.0);
+    state.animProgress += (dt * state.animSpeed) / T;
     if (state.animProgress >= 1) {
       state.animProgress = 1;
       state.isPlaying = false;
@@ -564,7 +576,6 @@ function animate(time) {
       btnPlay.classList.remove('playing');
     }
     // Update current pose from selected path waypoint
-    const path = state.paths[state.selectedPathIndex];
     const idx = Math.min(Math.floor(state.animProgress * (path.waypoints.length - 1)), path.waypoints.length - 1);
     const wp = path.waypoints[idx];
     state.currentPose = { t1: wp.t1, t2: wp.t2, t3: wp.t3 };
