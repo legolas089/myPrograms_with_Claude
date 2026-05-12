@@ -16,7 +16,10 @@ const DEFAULTS = {
   h0: 0.5, L1: 0.7, L2: 0.6,
   posA: { x: 0.7,  y: 0.0,  z: 0.5 },
   posB: { x: -0.4, y: 0.5,  z: 0.9 },
-  numPaths: 8,
+  // 14 paths surfaces all distinct duration tiers (≈6.4 s / 9 s / 12 s / 28 s)
+  // that the 6 strategies produce for the default A→B. Going below ~12 hides
+  // the longer Via-Point detours and Elbow Switch behind cost-rank cutoffs.
+  numPaths: 14,
   jointLimits: { t1min: -180, t1max: 180, t2min: -90, t2max: 135, t3min: -150, t3max: 30 }
 };
 
