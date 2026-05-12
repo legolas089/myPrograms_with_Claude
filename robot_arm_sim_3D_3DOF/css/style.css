@@ -201,7 +201,8 @@ body {
 .path-item.selected .path-cost { color: #ddd; }
 .path-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 .path-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.path-cost { font-size: 10px; color: #777; font-variant-numeric: tabular-nums; }
+.path-duration { font-size: 10px; color: #4fc3f7; font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
+.path-cost { font-size: 10px; color: #777; font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
 .path-optimal { font-size: 10px; color: #ffd700; }
 
 /* ── Animation Controls ── */

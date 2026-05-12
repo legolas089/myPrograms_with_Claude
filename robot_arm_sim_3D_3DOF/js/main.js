@@ -248,9 +248,11 @@ function buildPathList() {
     const item = document.createElement('div');
     item.className = 'path-item' + (i === state.selectedPathIndex ? ' selected' : '');
     const violation = path.limitViolation ? ' <span style="color:#ff6b6b;font-size:10px;">✗</span>' : '';
+    const dur = (path.totalTime ?? 0).toFixed(1);
     item.innerHTML = `
       <span class="path-color-dot" style="background:${path.color}"></span>
       <span class="path-name">${path.name}${violation}</span>
+      <span class="path-duration">${dur}s</span>
       <span class="path-cost">${path.cost.toFixed(2)}</span>
       ${path.rank === 1 ? '<span class="path-optimal">★</span>' : ''}
     `;
