@@ -13,12 +13,13 @@ initHelp();
 
 // ── Default configuration ──
 const DEFAULTS = {
-  h0: 0.5, L1: 0.7, L2: 0.6,
-  posA: { x: 0.7,  y: 0.0,  z: 0.5 },
-  posB: { x: -0.4, y: 0.5,  z: 0.9 },
-  // 14 paths surfaces all distinct duration tiers (≈6.4 s / 9 s / 12 s / 28 s)
-  // that the 6 strategies produce for the default A→B. Going below ~12 hides
-  // the longer Via-Point detours and Elbow Switch behind cost-rank cutoffs.
+  // Link lengths capped at 0.5 m, base at 0.01–0.5 m, sliders step 5 mm.
+  // Defaults chosen so r_inner = 0.05 m, r_max = 0.55 m, z_max = h0+L1+L2 = 0.65 m.
+  h0: 0.10, L1: 0.30, L2: 0.25,
+  posA: { x:  0.30, y: 0.00, z: 0.10 },
+  posB: { x: -0.20, y: 0.20, z: 0.30 },
+  // 14 paths surfaces all distinct duration tiers (Joint/Cubic Smooth, Overshoot,
+  // Elbow Switch, Via-Point detours) the 6 strategies can produce.
   numPaths: 14,
   jointLimits: { t1min: -180, t1max: 180, t2min: -90, t2max: 135, t3min: -150, t3max: 30 }
 };
@@ -283,9 +284,11 @@ function setBoxAttachment() {
 function redraw() {
   renderer3d.setShowGrid(state.showGrid);
   renderer3d.setShowWorkspace(state.showWorkspace, state.h0, state.L1, state.L2);
+  // setRobotPose updates the cached visual-scale (derived from L1, L2);
+  // setMarkers reads that scale, so it must run after.
+  renderer3d.setRobotPose(state);
   renderer3d.setMarkers(state.posA, state.posB, state.h0);
   renderer3d.setPaths(state.paths, state.selectedPathIndex, state.h0, state.L1, state.L2);
-  renderer3d.setRobotPose(state);
   setBoxAttachment();
   graphT12.draw(state);
   graphT23.draw(state);

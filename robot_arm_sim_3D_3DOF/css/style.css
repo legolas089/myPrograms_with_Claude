@@ -123,7 +123,7 @@ body {
   min-width: 48px; text-align: right; font-variant-numeric: tabular-nums;
 }
 .param-num {
-  width: 56px; padding: 2px 4px;
+  width: 64px; padding: 2px 4px;
   font-size: 12px; font-weight: 600; color: #4fc3f7;
   background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 3px;
   text-align: right; font-variant-numeric: tabular-nums;

@@ -46,9 +46,9 @@ export class Renderer3D {
     // Z-up world: tell THREE we want +Z up before constructing camera/controls.
     THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
 
-    this.camera = new THREE.PerspectiveCamera(45, w / h, 0.05, 50);
+    this.camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 50);
     this.camera.up.set(0, 0, 1);
-    this.camera.position.set(2.0, -2.2, 1.6);
+    this.camera.position.set(1.0, -1.1, 0.8);
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(window.devicePixelRatio || 1);
@@ -58,7 +58,7 @@ export class Renderer3D {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
-    this.controls.target.set(0, 0, 0.5);
+    this.controls.target.set(0, 0, 0.15);
 
     // Lights
     const hemi = new THREE.HemisphereLight(0xffffff, 0x303030, 0.85);
@@ -69,22 +69,25 @@ export class Renderer3D {
     dir.position.set(2, -3, 4);
     this.scene.add(dir);
 
-    // Ground grid (XY plane at z = 0). GridHelper is XZ by default → rotate.
-    this.gridHelper = new THREE.GridHelper(8, 32, COLOR_GRID, COLOR_GRID);
+    // Ground grid + floor — created at unit size, scaled per frame from L1+L2.
+    // Unit grid is 1 m × 1 m with 0.05 m subdivisions; mesh.scale.x/y resizes it.
+    this.gridHelper = new THREE.GridHelper(1, 20, COLOR_GRID, COLOR_GRID);
     this.gridHelper.rotation.x = Math.PI / 2;
     this.scene.add(this.gridHelper);
 
-    // Axes helper (small) at origin
-    this.axesHelper = new THREE.AxesHelper(0.3);
+    // Axes helper — scaled per frame too
+    this.axesHelper = new THREE.AxesHelper(1);
     this.scene.add(this.axesHelper);
 
-    // Floor plane (subtle)
-    const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(8, 8),
+    this.floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(1, 1),
       new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.95, side: THREE.DoubleSide })
     );
-    floor.position.set(0, 0, -0.001);
-    this.scene.add(floor);
+    this.floor.position.set(0, 0, -0.001);
+    this.scene.add(this.floor);
+
+    // Track last reach so we only resize when arm changes
+    this._lastReach = -1;
 
     // Path group (parent for all path lines)
     this._pathGroup = new THREE.Group();
@@ -176,21 +179,29 @@ export class Renderer3D {
     );
     stem.rotation.x = Math.PI / 2;  // local -Y → world -Z (down to floor)
     group.add(stem);
+    group.userData.sphere = sphere;
     group.userData.stem = stem;
     this.scene.add(group);
     return group;
   }
 
-  _orientCylinderBetween(mesh, a, b) {
+  // Visual scale factor in [0.2, 1.5] derived from the smaller link length.
+  // Reference 0.3 m corresponds to scale 1.0 (the original hard-coded sizing).
+  _visualScale(L1, L2) {
+    const minL = Math.min(L1, L2);
+    return Math.max(0.2, Math.min(1.5, minL / 0.3));
+  }
+
+  _orientCylinderBetween(mesh, a, b, radialScale = 1) {
     // Cylinder is a capsule along local +Y of length 1, origin at the 'a' end.
     const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
     const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
     mesh.position.set(a.x, a.y, a.z);
     if (len < 1e-6) {
-      mesh.scale.set(1, 1e-3, 1);
+      mesh.scale.set(radialScale, 1e-3, radialScale);
       return;
     }
-    mesh.scale.set(1, len, 1);
+    mesh.scale.set(radialScale, len, radialScale);
     const dirVec = new THREE.Vector3(dx, dy, dz).normalize();
     const up = new THREE.Vector3(0, 1, 0);
     const q = new THREE.Quaternion().setFromUnitVectors(up, dirVec);
@@ -201,28 +212,41 @@ export class Renderer3D {
     const { h0, L1, L2 } = state;
     if (this._h0 !== h0) this._buildBase(h0);
 
+    const s = this._visualScale(L1, L2);
+    const reach = L1 + L2;
+
+    // Rescale floor/grid/axes only when reach changes meaningfully.
+    if (Math.abs(reach - this._lastReach) > 1e-4) {
+      const gridSize = Math.max(0.4, reach * 3.5);   // floor side length (m)
+      this.gridHelper.scale.set(gridSize, 1, gridSize);
+      this.floor.scale.set(gridSize, gridSize, 1);
+      const axisLen = Math.max(0.05, reach * 0.4);
+      this.axesHelper.scale.set(axisLen, axisLen, axisLen);
+      this._lastReach = reach;
+    }
+
     const pose = state.currentPose || this._currentPose;
     this._currentPose = pose;
     const fk = forwardKinematics3D(pose.t1, pose.t2, pose.t3, h0, L1, L2);
 
-    // L1 between J2 and J3
-    this._orientCylinderBetween(this.l1Mesh, fk.J2, fk.J3);
-    // L2 between J3 and P
-    this._orientCylinderBetween(this.l2Mesh, fk.J3, fk.P);
+    // Link cylinders — radial dimension scales with s, length set inside helper.
+    this._orientCylinderBetween(this.l1Mesh, fk.J2, fk.J3, s);
+    this._orientCylinderBetween(this.l2Mesh, fk.J3, fk.P,  s);
 
-    // Parallel link Lp — offset L1 by a fixed distance perpendicular to the
-    // shoulder–elbow plane. The plane contains z-axis and the radial direction
-    // in (cos t1, sin t1). Perpendicular = (-sin t1, cos t1, 0).
-    const offset = 0.06;
+    // Parallel link Lp — perpendicular offset scales with arm size too.
+    const offset = 0.06 * s;
     const ox = -Math.sin(pose.t1) * offset;
     const oy =  Math.cos(pose.t1) * offset;
     const a = { x: fk.J2.x + ox, y: fk.J2.y + oy, z: fk.J2.z };
     const b = { x: fk.J3.x + ox, y: fk.J3.y + oy, z: fk.J3.z };
-    this._orientCylinderBetween(this.lpMesh, a, b);
-    this._orientCylinderBetween(this.crossA, fk.J2, a);
-    this._orientCylinderBetween(this.crossB, fk.J3, b);
+    this._orientCylinderBetween(this.lpMesh, a, b, s);
+    this._orientCylinderBetween(this.crossA, fk.J2, a, s);
+    this._orientCylinderBetween(this.crossB, fk.J3, b, s);
 
-    // Joints / EE
+    // Joint / EE spheres — uniform scaling
+    this.j2Sphere.scale.setScalar(s);
+    this.j3Sphere.scale.setScalar(s);
+    this.eeSphere.scale.setScalar(s);
     this.j2Sphere.position.set(fk.J2.x, fk.J2.y, fk.J2.z);
     this.j3Sphere.position.set(fk.J3.x, fk.J3.y, fk.J3.z);
     this.eeSphere.position.set(fk.P.x, fk.P.y, fk.P.z);
@@ -230,17 +254,27 @@ export class Renderer3D {
     // Box (if attached)
     if (this._boxAttached) {
       this.box.visible = true;
-      this.box.position.set(fk.P.x, fk.P.y, fk.P.z + 0.06);
+      this.box.scale.setScalar(s);
+      this.box.position.set(fk.P.x, fk.P.y, fk.P.z + 0.06 * s);
     } else {
       this.box.visible = false;
     }
+
+    // Cache scale for setMarkers to consume on next call
+    this._markerScale = s;
   }
 
   setMarkers(posA, posB, h0) {
-    this._markerA.position.set(posA.x, posA.y, posA.z);
-    this._markerA.userData.stem.scale.set(1, posA.z, 1);
-    this._markerB.position.set(posB.x, posB.y, posB.z);
-    this._markerB.userData.stem.scale.set(1, posB.z, 1);
+    const s = this._markerScale ?? 1;
+    const place = (marker, p) => {
+      marker.position.set(p.x, p.y, p.z);
+      marker.userData.sphere.scale.setScalar(s);
+      // Stem: scale.x and scale.z = radial (s), scale.y = world-Z length (p.z).
+      // Use max(1e-3, p.z) so a marker at z=0 still has a non-degenerate cylinder.
+      marker.userData.stem.scale.set(s, Math.max(1e-3, p.z), s);
+    };
+    place(this._markerA, posA);
+    place(this._markerB, posB);
   }
 
   setShowGrid(show) {
@@ -329,9 +363,10 @@ export class Renderer3D {
     this._boxAttached = attached;
   }
 
-  cameraPreset(preset, h0, reach = 1.3) {
-    // Camera distance scales with arm reach (h0 + L1 + L2 ≈ reach + h0 in caller).
-    const d = Math.max(2.0, reach * 1.7);
+  cameraPreset(preset, h0, reach = 0.55) {
+    // Camera distance scales smoothly with reach. Min 0.3 m so a 5 cm arm
+    // still has room between near plane (1 cm) and the geometry.
+    const d = Math.max(0.3, reach * 1.7);
     const target = new THREE.Vector3(0, 0, h0 * 0.6);
     let pos;
     switch (preset) {
