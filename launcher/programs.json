@@ -1,0 +1,109 @@
+{
+  "_comment": "Single source of truth for the launcher. Add a new program by appending one object below — no code changes needed. 'group' and 'category' are free text; the sidebar groups/orders them by first appearance here. mode: 'web' = served on localhost and embedded as an iframe tab; 'cli' = opens a terminal with 'commands'. icon = any Tabler outline icon name (https://tabler.io/icons).",
+  "programs": [
+    {
+      "id": "quarter_car_sim",
+      "name": "Quarter-Car Sim",
+      "folder": "quarter_car_sim",
+      "group": "Web apps",
+      "category": "Vehicle Dynamics",
+      "icon": "ti-car",
+      "mode": "web",
+      "blurb": "2-DOF quarter-car suspension simulator with ride-comfort metrics."
+    },
+    {
+      "id": "half_car_sim",
+      "name": "Half-Car Sim",
+      "folder": "half_car_sim",
+      "group": "Web apps",
+      "category": "Vehicle Dynamics",
+      "icon": "ti-car-suv",
+      "mode": "web",
+      "blurb": "4-DOF half-car suspension simulator (bounce + pitch)."
+    },
+    {
+      "id": "roll_center_sim",
+      "name": "Roll Center Sim",
+      "folder": "roll_center_sim",
+      "group": "Web apps",
+      "category": "Vehicle Dynamics",
+      "icon": "ti-rotate-360",
+      "mode": "web",
+      "blurb": "Double-wishbone front-view kinematics: instant & roll center."
+    },
+    {
+      "id": "robot_arm_sim",
+      "name": "2D Robot Arm",
+      "folder": "robot_arm_sim",
+      "group": "Web apps",
+      "category": "Robotics",
+      "icon": "ti-robot",
+      "mode": "web",
+      "blurb": "2-joint planar arm path-planning simulator."
+    },
+    {
+      "id": "robot_arm_sim_3D_3DOF",
+      "name": "3D Robot Arm",
+      "folder": "robot_arm_sim_3D_3DOF",
+      "group": "Web apps",
+      "category": "Robotics",
+      "icon": "ti-robot",
+      "mode": "web",
+      "blurb": "Vertical-articulated 3-DOF arm path planning in 3D."
+    },
+    {
+      "id": "step_viewer",
+      "name": "STEP Viewer",
+      "folder": "step_viewer",
+      "group": "Web apps",
+      "category": "3D / CAD",
+      "icon": "ti-cube",
+      "mode": "web",
+      "blurb": "3D CAD (.step/.stp) viewer with assembly tree & measurement."
+    },
+    {
+      "id": "cad_modeler",
+      "name": "CAD Modeler",
+      "folder": "cad_modeler",
+      "group": "Web apps",
+      "category": "3D / CAD",
+      "icon": "ti-box",
+      "mode": "web",
+      "blurb": "Simple 3D modeling workbench — primitives, booleans, STL/STEP export."
+    },
+    {
+      "id": "pdf_editor",
+      "name": "PDF Editor",
+      "folder": "pdf_editor",
+      "group": "Web apps",
+      "category": "Editors",
+      "icon": "ti-file-text",
+      "mode": "web",
+      "blurb": "Merge, split and reorder PDF pages."
+    },
+    {
+      "id": "latex_renderer",
+      "name": "LaTeX Renderer",
+      "folder": "latex_renderer",
+      "group": "Web apps",
+      "category": "Editors",
+      "icon": "ti-math-function",
+      "mode": "web",
+      "blurb": "Live LaTeX math rendering, image export, and OCR."
+    },
+    {
+      "id": "conference_programbook",
+      "name": "Conference Program Book",
+      "folder": "conference_programbook",
+      "group": "Standalone / CLI",
+      "category": "Standalone / CLI (no localhost)",
+      "icon": "ti-table",
+      "mode": "cli",
+      "blurb": "Python CLI pipeline that turns a conference Excel into a program book.",
+      "commands": [
+        "python conference_programbook/generate_program.py --init",
+        "python conference_programbook/generate_program.py --step all"
+      ]
+    }
+  ]
+}

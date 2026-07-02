@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "launcher",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["launcher/launcher_hub.py"],
+      "port": 3100
+    },
+    {
       "name": "step_viewer",
       "runtimeExecutable": "pythonw",
       "runtimeArgs": ["step_viewer/launcher.py"],

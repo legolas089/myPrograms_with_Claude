@@ -6,6 +6,20 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 
 ---
 
+## 통합 런처 (`launcher/`)
+
+모든 프로그램을 한 화면에서 실행·관리하는 통합 UI.
+
+- **왼쪽 패널**: 프로그램을 카테고리별로 나열 (Vehicle Dynamics / Robotics / 3D·CAD / Editors), 그리고 localhost를 쓰지 않는 CLI 프로그램은 하단 `Standalone / CLI` 섹션으로 분리
+- **가운데 패널**: 클릭한 프로그램이 Chrome 스타일 탭으로 열림 — 여러 개를 동시에 실행하고 탭을 전환해도 각 프로그램의 상태가 유지됨
+- **오른쪽 Downloads 패널**: 상단 Downloads 버튼으로 토글, 다운로드 폴더의 최근 파일을 클릭하면 기본 앱으로 열기 / `Open folder`로 폴더 열기
+- 통합 런처 서버 하나(포트 3100)가 저장소 전체를 단일 origin으로 서빙하여 각 웹 프로그램을 iframe으로 임베드 — 프로그램마다 서버를 따로 띄우지 않음
+- CLI 전용인 Conference Program Book은 클릭 시 명령어가 입력된 터미널 창을 열어줌
+
+**실행**: `Launcher.bat` 더블클릭 (http://localhost:3100)
+
+---
+
 ## 프로그램 목록
 
 ### 1. STEP Viewer (`step_viewer/`)

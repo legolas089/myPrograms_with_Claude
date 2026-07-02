@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>myPrograms Launcher</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="/launcher/css/style.css">
+</head>
+<body>
+  <!-- Top bar -->
+  <header id="topbar">
+    <i class="ti ti-apps" id="topbar-logo"></i>
+    <span id="topbar-title">myPrograms Launcher</span>
+    <div class="spacer"></div>
+    <button id="btn-downloads" class="topbar-btn" title="Show downloaded files">
+      <i class="ti ti-download"></i><span>Downloads</span>
+    </button>
+  </header>
+
+  <div id="body">
+    <!-- Left sidebar: program list -->
+    <aside id="sidebar">
+      <div id="program-list"><!-- populated by JS --></div>
+    </aside>
+
+    <!-- Center: tab strip + program host -->
+    <main id="workspace">
+      <div id="tabstrip"><!-- tabs populated by JS --></div>
+      <div id="host">
+        <div id="empty-state">
+          <i class="ti ti-mouse"></i>
+          <p>Select a program on the left to launch it here.</p>
+          <p class="hint">Programs open as tabs and keep running when you switch.</p>
+        </div>
+        <!-- iframes injected here -->
+      </div>
+    </main>
+
+    <!-- Right: downloads panel -->
+    <aside id="downloads-panel" class="hidden">
+      <div class="panel-head">
+        <i class="ti ti-download"></i><span>Downloads</span>
+        <div class="spacer"></div>
+        <button id="btn-refresh-dl" class="icon-btn" title="Refresh"><i class="ti ti-refresh"></i></button>
+        <button id="btn-close-dl" class="icon-btn" title="Close"><i class="ti ti-x"></i></button>
+      </div>
+      <div id="downloads-list"><!-- populated by JS --></div>
+      <div class="panel-foot">
+        <button id="btn-open-folder" class="wide-btn"><i class="ti ti-folder"></i> Open folder</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- CLI info modal -->
+  <div id="cli-modal" class="hidden">
+    <div class="cli-card">
+      <div class="cli-head">
+        <i class="ti ti-terminal-2"></i><span id="cli-title">Program</span>
+        <div class="spacer"></div>
+        <button id="cli-close" class="icon-btn"><i class="ti ti-x"></i></button>
+      </div>
+      <p id="cli-blurb"></p>
+      <p class="cli-note">A terminal window has been opened with the commands below:</p>
+      <pre id="cli-commands"></pre>
+    </div>
+  </div>
+
+  <script src="/launcher/js/main.js"></script>
+</body>
+</html>
