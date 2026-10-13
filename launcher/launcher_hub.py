@@ -109,6 +109,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return self._open_folder()
         if path == "/api/run-cli":
             return self._run_cli(body)
+        if path == "/api/start-backend":
+            return self._start_backend(body)
         self._send_json({"error": "not found"}, status=404)
 
     # ── API handlers ─────────────────────────────────────────────
@@ -162,6 +164,36 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 cwd=REPO_ROOT, shell=True,
             )
             return self._send_json({"ok": True, "commands": commands})
+        except OSError as e:
+            return self._send_json({"error": str(e)}, status=500)
+
+    def _start_backend(self, body):
+        """Spawn a web program's optional Python backend (programs.json 'backend').
+
+        The hub only serves static files, so programs that need a local API
+        (e.g. Article Printer's fetch/PDF server) ask for it here when their
+        frontend cannot reach it. Fire-and-forget; the frontend polls health.
+        """
+        prog = programs_by_id().get(body.get("id", ""))
+        backend = (prog or {}).get("backend")
+        if not prog or prog.get("mode") != "web" or not backend:
+            return self._send_json({"error": "program has no backend"}, status=400)
+        script = Path(REPO_ROOT) / prog["folder"] / backend
+        if not script.is_file():
+            return self._send_json({"error": f"backend not found: {script}"}, status=404)
+        exe = sys.executable
+        if exe.lower().endswith("python.exe"):
+            pythonw = exe[:-10] + "pythonw.exe"
+            if os.path.isfile(pythonw):
+                exe = pythonw
+        try:
+            subprocess.Popen(
+                [exe, str(script)],
+                cwd=str(script.parent),
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            return self._send_json({"ok": True, "script": str(script)})
         except OSError as e:
             return self._send_json({"error": str(e)}, status=500)
 

@@ -143,7 +143,27 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
 **실행**: `CAD Modeler.bat` 또는 `dist/CADModeler.exe` 더블클릭 (http://localhost:3007)
 
-### 10. Conference Program Book (`conference_programbook/`)
+### 10. Article Printer (`article_printer/`)
+뉴스·위키·블로그 링크를 붙여넣으면 광고·메뉴를 뺀 본문만 추출해 한 개의 PDF로 묶어 인쇄하는 도구
+
+- 링크를 한 줄에 하나씩, 한 번에 최대 10개까지 입력 → 병렬로 가져와 문서 목록에 표시
+- 본문 추출: 사이트별 어댑터 → `trafilatura` → `readability-lxml` 순으로 시도
+  - 위키백과·네이버 블로그는 본문 컨테이너를 직접 읽어 제목·그림·표를 보존 (네이버 블로그는 바깥 프레임이 아닌 실제 본문 페이지 PostView를 자동으로 찾음)
+  - 조선일보처럼 본문을 JS로 그리는 Arc XP 사이트는 페이지에 내장된 기사 JSON에서 추출
+  - 네이버 뉴스·나무위키는 정리 규칙을 적용한 뒤 자동 추출
+  - 저작권 문구·기자 이메일 같은 꼬리 문단은 자동으로 체크 해제
+- 문단 단위 편집: 체크박스로 포함/제외, Shift+클릭 범위 선택, "여기 위/아래 모두 제외"로 원하는 구역만 남기기
+- 자동 추출이 안 되는 페이지(로그인·JS 전용·봇 차단)는 **직접 입력**으로 본문 텍스트나 페이지 소스 HTML을 붙여넣기
+- 인쇄 옵션: 이미지 포함, 출처·날짜·기자 표시, 문서마다 새 페이지, 첫 장 목차, 글자 크기·줄 간격, 파일 이름
+- **PDF 저장**: 로컬 Chrome/Edge 헤드리스로 렌더링해 `Downloads` 폴더에 한 개의 PDF로 저장 (텍스트 선택 가능)
+- **전체 미리보기 / 브라우저 인쇄**: 완성 문서를 화면 안 미리보기 창에 띄우고, 브라우저 인쇄 대화상자로 프린터 출력 또는 PDF 저장 (Chrome/Edge가 없을 때의 대안)
+- 통합 런처에서 열면 백엔드(`server.py`, 포트 5001)를 자동으로 띄움
+
+**실행**: `Article Printer.bat` 더블클릭 (http://localhost:5001)
+
+**의존성**: `pip install flask flask-cors requests trafilatura readability-lxml`
+
+### 11. Conference Program Book (`conference_programbook/`)
 학회 제출 엑셀을 프로그램북 작업 파일로 자동 변환·검증하는 Python CLI 파이프라인
 
 - `input_raw.xlsx` (학회 submission 원본) → `program_book_working.xlsx` (다중 시트 통합 작업본)

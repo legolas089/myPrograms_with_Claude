@@ -60,6 +60,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "robot_arm_sim_3D_3DOF", "-p", "3009", "-c-1"],
       "port": 3009
+    },
+    {
+      "name": "article_printer",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["article_printer/server.py"],
+      "port": 5001
     }
   ]
 }

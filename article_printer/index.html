@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Article Printer</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="header-row">
+        <h1>Article Printer</h1>
+        <span id="backend-status" class="status status-wait">백엔드 확인 중…</span>
+      </div>
+      <p class="subtitle">뉴스·위키·블로그 링크를 붙여넣으면 본문만 추출해 한 개의 PDF로 묶어 인쇄합니다.</p>
+    </header>
+
+    <!-- ── URL input ── -->
+    <section class="input-panel">
+      <textarea id="url-input" rows="4" spellcheck="false"
+        placeholder="링크를 한 줄에 하나씩 붙여넣기 (최대 10개)&#10;https://n.news.naver.com/article/...&#10;https://ko.wikipedia.org/wiki/..."></textarea>
+      <div class="actions">
+        <button class="btn-primary" id="fetch-btn">가져오기</button>
+        <button class="btn-secondary" id="manual-btn">직접 입력</button>
+        <button class="btn-secondary" id="clear-btn">목록 비우기</button>
+        <span id="url-count" class="hint"></span>
+      </div>
+    </section>
+
+    <!-- ── Workspace ── -->
+    <main class="workspace">
+      <aside class="panel article-panel">
+        <div class="panel-title">
+          <span>문서 목록</span>
+          <span id="article-count" class="hint"></span>
+        </div>
+        <div id="article-list" class="article-list">
+          <div class="empty">위에 링크를 붙여넣고 <b>가져오기</b>를 누르세요.</div>
+        </div>
+      </aside>
+
+      <section class="panel preview-panel">
+        <div class="panel-title">
+          <span id="preview-title">미리보기</span>
+          <span id="preview-count" class="hint"></span>
+        </div>
+        <div class="preview-toolbar" id="preview-toolbar" style="display:none">
+          <button class="btn-small" id="select-all-btn">전체 선택</button>
+          <button class="btn-small" id="deselect-all-btn">전체 해제</button>
+          <button class="btn-small" id="no-images-btn">이미지 모두 제외</button>
+          <span class="toolbar-divider"></span>
+          <span class="hint">체크박스로 문단 선택 · Shift+클릭으로 범위 · 문단 위에 마우스를 올리면 "여기 위/아래 모두 제외"</span>
+        </div>
+        <div id="blocks" class="blocks">
+          <div class="empty">왼쪽 목록에서 문서를 선택하면 문단이 표시됩니다.</div>
+        </div>
+      </section>
+
+      <aside class="panel options-panel">
+        <div class="panel-title"><span>인쇄 옵션</span></div>
+        <label class="opt"><input type="checkbox" id="opt-images" checked> 이미지 포함</label>
+        <label class="opt"><input type="checkbox" id="opt-meta" checked> 출처·날짜·기자 표시</label>
+        <label class="opt"><input type="checkbox" id="opt-newpage" checked> 문서마다 새 페이지에서 시작</label>
+        <label class="opt"><input type="checkbox" id="opt-cover" checked> 첫 장에 목차 페이지</label>
+        <label class="opt range">
+          <span>글자 크기 <b id="opt-font-val">11</b>pt</span>
+          <input type="range" id="opt-font" min="9" max="16" step="0.5" value="11">
+        </label>
+        <label class="opt range">
+          <span>줄 간격 <b id="opt-lh-val">1.6</b></span>
+          <input type="range" id="opt-lh" min="1.2" max="2.2" step="0.1" value="1.6">
+        </label>
+        <label class="opt column">
+          <span>파일 이름</span>
+          <input type="text" id="opt-filename" placeholder="articles_2026-01-01">
+        </label>
+
+        <div class="save-actions">
+          <button class="btn-primary" id="pdf-btn" disabled>PDF 저장 (Downloads)</button>
+          <button class="btn-secondary" id="print-btn" disabled>브라우저 인쇄</button>
+          <button class="btn-secondary" id="preview-doc-btn" disabled>전체 미리보기</button>
+        </div>
+        <div id="save-result" class="save-result"></div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- ── Manual paste modal ── -->
+  <div id="manual-modal" class="modal hidden">
+    <div class="modal-box">
+      <h2>직접 입력</h2>
+      <p class="hint">자동 추출이 안 되는 페이지는 브라우저에서 본문 텍스트(또는 페이지 소스 HTML)를 복사해 붙여넣으세요.</p>
+      <input type="text" id="manual-title" placeholder="제목 (선택)">
+      <input type="text" id="manual-url" placeholder="원본 링크 (선택, 출처 표시용)">
+      <textarea id="manual-text" rows="12" placeholder="여기에 붙여넣기 — HTML이면 본문을 자동 추출하고, 일반 텍스트면 빈 줄 기준으로 문단을 나눕니다."></textarea>
+      <div class="actions">
+        <button class="btn-primary" id="manual-add-btn">추가</button>
+        <button class="btn-secondary" id="manual-cancel-btn">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Full-document preview / print (in-page iframe, no popup needed) ── -->
+  <div id="doc-modal" class="modal hidden">
+    <div class="modal-box doc-box">
+      <div class="doc-toolbar">
+        <span id="doc-modal-title">전체 미리보기</span>
+        <span class="spacer"></span>
+        <button class="btn-primary" id="doc-print-btn">인쇄 / PDF로 저장</button>
+        <button class="btn-secondary" id="doc-close-btn">닫기</button>
+      </div>
+      <iframe id="doc-frame" title="document preview"></iframe>
+    </div>
+  </div>
+
+  <script src="js/print.js"></script>
+  <script src="js/editor.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

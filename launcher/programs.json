@@ -1,5 +1,5 @@
 {
-  "_comment": "Single source of truth for the launcher. Add a new program by appending one object below — no code changes needed. 'group' and 'category' are free text; the sidebar groups/orders them by first appearance here. mode: 'web' = served on localhost and embedded as an iframe tab; 'cli' = opens a terminal with 'commands'. icon = any Tabler outline icon name (https://tabler.io/icons).",
+  "_comment": "Single source of truth for the launcher. Add a new program by appending one object below — no code changes needed. 'group' and 'category' are free text; the sidebar groups/orders them by first appearance here. mode: 'web' = served on localhost and embedded as an iframe tab; 'cli' = opens a terminal with 'commands'. icon = any Tabler outline icon name (https://tabler.io/icons). Optional 'backend' = a Python file inside 'folder' that the hub starts on demand (POST /api/start-backend) when the program's frontend cannot reach its API.",
   "programs": [
     {
       "id": "quarter_car_sim",
@@ -90,6 +90,17 @@
       "icon": "ti-math-function",
       "mode": "web",
       "blurb": "Live LaTeX math rendering, image export, and OCR."
+    },
+    {
+      "id": "article_printer",
+      "name": "Article Printer",
+      "folder": "article_printer",
+      "group": "Web apps",
+      "category": "Editors",
+      "icon": "ti-printer",
+      "mode": "web",
+      "backend": "server.py",
+      "blurb": "Paste up to 10 article links, extract the body text, and print them as one PDF."
     },
     {
       "id": "conference_programbook",
