@@ -13,7 +13,7 @@ const PrintDoc = (() => {
       @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
       html, body { margin: 0; padding: 0; }
       body {
-        font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
+        font-family: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", "Segoe UI", sans-serif;
         font-size: ${opts.fontSize}pt;
         line-height: ${opts.lineHeight};
         color: #111;
