@@ -20,11 +20,44 @@ meshGroup.name = '__cad_meshes__';
 const nodeMeshMap = new Map(); // nodeId -> THREE.Mesh
 let stepOpacity = 1;
 
+// 화면에 따로 그려지지 않는 노드(Boolean 의 입력, 숨긴 노드)를 선택했을 때 보여 줄 윤곽선
+const ghostGroup = new THREE.Group();
+ghostGroup.name = '__cad_ghosts__';
+const ghostMap = new Map(); // nodeId -> THREE.LineSegments
+
 export function attachMeshGroup(scene) {
   if (!scene.getObjectByName('__cad_meshes__')) {
     scene.add(meshGroup);
+    scene.add(ghostGroup);
   }
 }
+
+export function updateGhosts(state) {
+  const nodeMap = new Map(state.nodes.map(n => [n.id, n]));
+  const want = new Set(state.selection.filter(id => !nodeMeshMap.has(id) && nodeMap.has(id)));
+  for (const [id, g] of [...ghostMap]) {
+    const node = nodeMap.get(id);
+    if (!want.has(id) || g.userData.key !== nodeKey(node, nodeMap)) {
+      ghostGroup.remove(g); g.geometry.dispose(); g.material.dispose(); ghostMap.delete(id);
+    }
+  }
+  for (const id of want) {
+    if (ghostMap.has(id)) continue;
+    const node = nodeMap.get(id);
+    let geom;
+    try { geom = evaluateNode(node, nodeMap); } catch { geom = null; }
+    if (!geom) continue;
+    const line = new THREE.LineSegments(new THREE.EdgesGeometry(geom, 20),
+      new THREE.LineBasicMaterial({ color: SELECTED_COLOR, depthTest: false, transparent: true, opacity: 0.9 }));
+    geom.dispose();
+    line.renderOrder = 999;
+    line.userData = { nodeId: id, key: nodeKey(node, nodeMap) };
+    ghostGroup.add(line);
+    ghostMap.set(id, line);
+  }
+}
+
+export function getGhostForNode(nodeId) { return ghostMap.get(nodeId); }
 
 // 노드(와 boolean 자식 트리)의 내용이 같으면 같은 키 → 메쉬 재사용
 function nodeKey(node, nodeMap) {
@@ -34,7 +67,7 @@ function nodeKey(node, nodeMap) {
     return JSON.stringify([rest, a && nodeKey(a, nodeMap), b && nodeKey(b, nodeMap)]);
   }
   if (isStepNode(node)) {
-    return JSON.stringify([rest, !!getPart(node.source, node.mesh)]);
+    return JSON.stringify([rest, !!getPart(node.source, node.mesh, node.merged)]);
   }
   return JSON.stringify(rest);
 }
@@ -89,7 +122,7 @@ export function rebuildScene(state) {
 
     let color = NORMAL_COLOR;
     if (isBooleanNode(node)) color = BOOL_COLOR;
-    if (step) color = getPart(node.source, node.mesh)?.color ?? STEP_COLOR;
+    if (step) color = getPart(node.source, node.mesh, node.merged)?.color ?? STEP_COLOR;
     const mat = new THREE.MeshStandardMaterial({
       color,
       metalness: 0.1,
@@ -101,7 +134,7 @@ export function rebuildScene(state) {
     mesh.userData.key = key;
     mesh.userData.baseColor = color;
     mesh.userData.isStep = step;
-    if (step) mesh.userData.brepFaces = getPart(node.source, node.mesh)?.brepFaces || [];
+    if (step) mesh.userData.brepFaces = getPart(node.source, node.mesh, node.merged)?.brepFaces || [];
     applyOpacity(mesh);
     meshGroup.add(mesh);
     nodeMeshMap.set(node.id, mesh);

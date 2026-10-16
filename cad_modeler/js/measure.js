@@ -276,7 +276,9 @@ export function faceData(mesh) {
   }
 
   const triFace = new Int32Array(triCount).fill(-1);
-  const brep = mesh.userData.brepFaces;
+  // 메쉬로 내보낸 STEP(삼각형 하나 = B-rep 면 하나)은 면 정보가 의미 없으므로 법선 기준 묶기로 처리
+  const brepRaw = mesh.userData.brepFaces;
+  const brep = brepRaw && brepRaw.length < triCount * 0.5 ? brepRaw : null;
   if (brep && brep.length) {
     // occt-import-js 의 brep_faces.last 는 마지막 삼각형을 포함하는 인덱스
     brep.forEach((f, i) => { for (let t = f.first; t <= f.last && t < triCount; t++) triFace[t] = i; });

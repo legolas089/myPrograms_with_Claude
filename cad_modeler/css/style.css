@@ -85,6 +85,9 @@ body {
 #viewer-canvas {
   flex: 1;
   width: 100%;
+  /* 렌더 해상도(width/height 속성)가 레이아웃 크기를 밀어내지 않도록 */
+  min-width: 0;
+  min-height: 0;
   display: block;
   outline: none;
 }

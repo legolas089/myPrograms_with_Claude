@@ -6,6 +6,17 @@ import { getPart } from './stepstore.js';
 
 const evaluator = new Evaluator();
 evaluator.useGroups = false;
+// 두 입력의 속성 구성이 같아야 한다 — STEP 메쉬에는 uv 가 없으므로 position/normal 만 쓴다
+evaluator.attributes = ['position', 'normal'];
+
+function csgReady(geom) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', geom.attributes.position);
+  if (geom.attributes.normal) g.setAttribute('normal', geom.attributes.normal);
+  else g.computeVertexNormals();
+  if (geom.index) g.setIndex(geom.index);
+  return g;
+}
 
 const PRIMITIVE_DEFAULTS = {
   box:      { x: 20, y: 20, z: 20 },
@@ -88,6 +99,7 @@ export function applyTransformToGeometry(geometry, transform) {
 
 // node가 primitive면 build, boolean이면 재귀적으로 평가하여 BufferGeometry 반환
 export function evaluateNode(node, nodeMap) {
+  if (!node) return null; // 입력이 사라진 Boolean (예전 장면)
   if (node.type === 'boolean') {
     const a = evaluateNode(nodeMap.get(node.a), nodeMap);
     const b = evaluateNode(nodeMap.get(node.b), nodeMap);
@@ -96,9 +108,9 @@ export function evaluateNode(node, nodeMap) {
     const op = opMap[node.op];
     if (op === undefined) throw new Error(`Unknown boolean op: ${node.op}`);
 
-    const brushA = new Brush(a);
+    const brushA = new Brush(csgReady(a));
     brushA.updateMatrixWorld();
-    const brushB = new Brush(b);
+    const brushB = new Brush(csgReady(b));
     brushB.updateMatrixWorld();
     const result = evaluator.evaluate(brushA, brushB, op);
     let geom = result.geometry.clone();
@@ -113,7 +125,7 @@ export function evaluateNode(node, nodeMap) {
   }
   if (node.type === 'step') {
     // STEP 참조 파트: 원본 메쉬가 아직 로드되지 않았으면 null
-    const part = getPart(node.source, node.mesh);
+    const part = getPart(node.source, node.mesh, node.merged);
     if (!part) return null;
     return applyTransformToGeometry(part.geometry, node.transform);
   }

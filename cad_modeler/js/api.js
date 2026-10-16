@@ -18,7 +18,7 @@ const HELP = `window.cad — Simple CAD Modeler 스크립트 API (단위 mm, Z-u
   cad.move(ids, [dx,dy,dz])          노드들을 상대 이동 (한 번의 Undo)
   cad.moveTo(ids, [x,y,z], anchor?)  bbox 중심(anchor='bottom' 이면 바닥 중심)을 해당 좌표로
   cad.rotate(ids, [rx,ry,rz], pivot?) 세계 축 기준 회전 (기본 pivot = bbox 중심). Y-up 모델 → Z-up: [90,0,0]
-  cad.remove(...ids)
+  cad.remove(...ids)                 삭제 (Boolean 입력으로 쓰이는 노드는 건너뜀 → 반환값)
   cad.select(...ids)                 화면 선택 (빈 인자 = 선택 해제)
   await cad.importStep(url)          서버 경로의 STEP 을 참조 모델로 가져오기 → [ids]
   cad.bbox(...ids)                   세계 좌표 bbox {min,max,size,center}
@@ -284,7 +284,22 @@ export function createApi(deps) {
       history.apply(cmdSetTransforms(ids.map(id => ({ id, transform: composeDelta(D, node(id).transform) })), 'API rotate'));
     },
 
-    remove(...ids) { for (const id of ids.flat()) history.apply(cmdDeleteNode(id)); },
+    // Boolean 의 입력(a/b)으로 쓰이는 노드는 지우지 않는다 — 지우면 Boolean 결과가 조용히 사라진다.
+    // 같은 호출에 Boolean 도 들어 있으면 Boolean 을 먼저 지운 뒤 입력을 지운다. 반환: 지우지 못한 id
+    remove(...ids) {
+      let rest = ids.flat().filter(id => state.nodes.some(n => n.id === id));
+      const usedAsInput = id => state.nodes.some(n => isBooleanNode(n) && (n.a === id || n.b === id));
+      for (let progress = true; progress && rest.length;) {
+        progress = false;
+        for (const id of [...rest]) {
+          if (usedAsInput(id)) continue;
+          history.apply(cmdDeleteNode(id));
+          rest = rest.filter(x => x !== id);
+          progress = true;
+        }
+      }
+      return rest;
+    },
 
     select(...ids) {
       state.selection = ids.flat().filter(id => state.nodes.some(n => n.id === id));
@@ -330,7 +345,7 @@ export function createApi(deps) {
 
     undo() { return history.undo(); },
     redo() { return history.redo(); },
-    newScene() { history.apply(cmdReplaceState({ nodes: [], nextId: 1, selection: [] })); },
+    newScene() { history.apply(cmdReplaceState({ nodes: [], nextId: 1, selection: [] })); setView('iso'); },
     toJSON() { return serialize(state); },
     toast,
   };

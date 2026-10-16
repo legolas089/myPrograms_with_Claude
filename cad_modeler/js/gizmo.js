@@ -106,15 +106,21 @@ export class Gizmo {
     const ids = this._ids;
     this._p0 = null;
     this._ids = null;
-    if (!moved) { this.refresh(); return; }
-
-    const updates = [];
-    for (const id of ids) {
-      const node = this.state.nodes.find(n => n.id === id);
-      if (!node) continue;
-      updates.push({ id, transform: composeDelta(m, node.transform) });
+    // 피벗 회전을 바로 비운다. TransformControls 는 mouseUp 을 dragging=false 보다 먼저 알리므로
+    // 커밋 뒤 redraw 의 refresh() 가 건너뛰어지고, 남은 회전이 다음 회전 드래그에 누적되던 문제를 막는다
+    this.pivot.quaternion.identity();
+    this.pivot.updateMatrixWorld();
+    if (moved) {
+      const updates = [];
+      for (const id of ids) {
+        const node = this.state.nodes.find(n => n.id === id);
+        if (!node) continue;
+        updates.push({ id, transform: composeDelta(m, node.transform) });
+      }
+      this.onCommit(updates);
     }
-    this.onCommit(updates);
+    // 드래그가 완전히 끝난 다음 프레임에 피벗을 새 bbox 중심으로
+    setTimeout(() => this.refresh(), 0);
   }
 }
 

@@ -5,7 +5,8 @@ export function initScene(canvas) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(0x1e1e1e);
-  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+  // updateStyle=false: 캔버스 표시 크기는 CSS(뷰어 영역 가득)에 맡기고, 렌더 해상도만 맞춘다
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 
   const scene = new THREE.Scene();
 
@@ -44,15 +45,16 @@ export function initScene(canvas) {
   controls.dampingFactor = 0.1;
   controls.target.set(0, 0, 0);
 
-  const container = canvas.parentElement;
+  // 캔버스 자체의 표시 크기(툴바를 뺀 영역)를 따라 해상도와 화면비를 맞춘다
   const ro = new ResizeObserver(() => {
-    const w = container.clientWidth;
-    const h = container.clientHeight;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (!w || !h) return;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   });
-  ro.observe(container);
+  ro.observe(canvas);
 
   renderer.setAnimationLoop(() => {
     controls.update();

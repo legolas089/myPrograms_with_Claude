@@ -3,14 +3,14 @@ import { initScene, setGridVisible, fitGrid } from './scene.js';
 import { defaultParams, PRIMITIVE_FIELDS, evaluateNode, isStepNode } from './kernel.js';
 import {
   attachMeshGroup, rebuildScene, highlightSelection, frameAll, frameBox, pickMeshAt,
-  getMeshForNode, getSceneBox, setStepOpacity,
+  getMeshForNode, getSceneBox, setStepOpacity, updateGhosts, getGhostForNode,
 } from './visualize.js';
-import { History, cmdAddNode, cmdAddNodes, cmdDeleteNode, cmdBoolean, cmdReplaceState, cmdSetTransforms } from './history.js';
+import { History, cmdAddNode, cmdAddNodes, cmdBoolean, cmdReplaceState, cmdSetTransforms } from './history.js';
 import { renderOutliner } from './outliner.js';
 import { TransformPanel } from './transform.js';
 import { serialize, deserialize, downloadJSON } from './persistence.js';
-import { exportSTL, exportSTEP } from './exporters.js';
-import { parseStep, saveBytes, uniqueKey, hasSource, restoreSources } from './stepstore.js';
+import { exportSTL, exportSTEP, stepExportPlan } from './exporters.js';
+import { parseStep, saveBytes, uniqueKey, hasSource, restoreSources, migrateStepNodes } from './stepstore.js';
 import { Gizmo } from './gizmo.js';
 import { Measure } from './measure.js';
 import { createApi } from './api.js';
@@ -64,7 +64,8 @@ function nodeBox(id) {
 
 const gizmo = new Gizmo({
   ctx, state,
-  getMesh: getMeshForNode,
+  // 미리보기용: 실제 메쉬가 없으면(Boolean 입력) 선택 윤곽선을 움직인다
+  getMesh: id => getMeshForNode(id) || getGhostForNode(id),
   getNodeBox: nodeBox,
   onCommit: updates => history.apply(cmdSetTransforms(updates, 'Gizmo')),
 });
@@ -89,6 +90,7 @@ function redraw() {
 
 function refreshSelectionUI() {
   highlightSelection(state.selection);
+  updateGhosts(state);
   renderOutliner(treeEl, state, outlinerCallbacks);
   tpanel.refresh();
   gizmo.refresh();
@@ -145,6 +147,7 @@ function handleAction(action, btn) {
     case 'new-scene':
       if (state.nodes.length && !confirm('현재 장면을 비우고 새로 시작할까요? (Undo 로 되돌릴 수 있음)')) break;
       history.apply(cmdReplaceState({ nodes: [], nextId: 1, selection: [] }));
+      setView('iso'); // 빈 장면 기본 시점 (이전 모델 위치에 머물러 그리드가 아주 작게 보이던 문제)
       setStatus('새 장면');
       break;
     case 'import-step':
@@ -160,15 +163,22 @@ function handleAction(action, btn) {
     case 'export-stl':
       try {
         if (state.nodes.length === 0) throw new Error('내보낼 도형이 없습니다');
-        exportSTL(state, 'scene.stl');
-        toast(`STL 내보내기 완료${state.selection.length ? ' (선택 항목)' : ''}`, 'success');
+        const name = exportSTL(state);
+        toast(`${name} 저장${state.selection.length ? ' (선택 항목)' : ''}`, 'success');
       } catch (err) { toast('STL 내보내기 실패: ' + err.message, 'error'); }
       break;
     case 'export-step':
       try {
         if (state.nodes.length === 0) throw new Error('내보낼 도형이 없습니다');
-        const r = exportSTEP(state, 'scene.step');
-        toast(`STEP 내보내기 완료 (${r.triangleCount}개 삼각형, ${r.breps}개 솔리드)`, 'success');
+        const plan = stepExportPlan(state);
+        // 큰 STEP 참조 모델까지 포함하면 파일이 매우 커지고 다른 CAD 에서 열기도 느리다 → 미리 확인
+        const tris = plan.nodes.reduce((s, n) => {
+          const m = getMeshForNode(n.id);
+          return s + (m ? (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3 : 0);
+        }, 0);
+        if (tris > 300000 && !confirm(`${plan.fileName}: 구성품 ${plan.nodes.length}개, 삼각형 약 ${Math.round(tris / 1000)}k개입니다.\n파일이 크고 변환에 시간이 걸릴 수 있습니다. 계속할까요?\n(파트 하나만 내보내려면 먼저 그 파트를 선택하세요)`)) break;
+        const r = exportSTEP(state, plan);
+        toast(`${r.fileName} 저장 — ${plan.assembly ? `어셈블리 구성품 ${r.components}개, ` : ''}면 ${r.faces}개 (삼각형 ${r.triangles}개)`, 'success');
       } catch (err) {
         console.error(err);
         toast('STEP 내보내기 실패: ' + err.message, 'error');
@@ -330,6 +340,7 @@ async function importStepBytes(fileName, bytes, url = null) {
     const parts = await parseStep(key, bytes);
     await saveBytes(key, bytes);
     if (relink) {
+      migrateStepNodes(state.nodes);
       redraw();
       toast(`${fileName} 다시 연결됨`, 'success');
       return state.nodes.filter(n => isStepNode(n) && n.source === key).map(n => n.id);
@@ -340,6 +351,7 @@ async function importStepBytes(fileName, bytes, url = null) {
       source: key,
       url,
       mesh: p.meshIndex,
+      ...(p.meshIndices.length > 1 ? { merged: true } : {}),
       name: p.name,
       path: p.path,
       transform: { pos: [0,0,0], rot: [0,0,0], scale: [1,1,1] },
@@ -471,8 +483,10 @@ const outlinerCallbacks = {
     if (next === null) return;
     history.apply({
       label: 'Rename',
-      do: (s) => { const x = s.nodes.find(y => y.id === id); if (x) { x._prevName = x.name; x.name = next; } },
-      undo: (s) => { const x = s.nodes.find(y => y.id === id); if (x) { x.name = x._prevName; delete x._prevName; } },
+      // 이전 값은 명령 안에 보관 — 노드에 두면 연속 변경 시 덮어써져 Undo 가 깨진다
+      prev: undefined,
+      do(s) { const x = s.nodes.find(y => y.id === id); if (x) { this.prev = x.name; x.name = next; } },
+      undo(s) { const x = s.nodes.find(y => y.id === id); if (x) x.name = this.prev; },
     });
   },
 };
@@ -490,9 +504,8 @@ document.getElementById('btn-delete').addEventListener('click', () => deleteSele
 
 function deleteSelection() {
   if (state.selection.length === 0) return;
-  for (const id of [...state.selection]) {
-    history.apply(cmdDeleteNode(id));
-  }
+  const blocked = api.remove(...state.selection);
+  if (blocked.length) toast(`Boolean 의 입력 도형은 지울 수 없습니다 (${blocked.join(', ')}) — Boolean 을 먼저 지우세요`, 'error');
 }
 
 // --- 측정 패널: 선택한 두 노드 사이 최소거리 / 간섭 ---
@@ -545,6 +558,7 @@ async function loadSceneJSON(text) {
   try {
     const next = deserialize(text);
     const missing = await restoreSources(next.nodes);
+    migrateStepNodes(next.nodes);
     history.apply(cmdReplaceState(next));
     setView('iso');
     toast(`불러오기 완료 (${next.nodes.length}개 노드)`, 'success');
@@ -610,6 +624,7 @@ async function boot() {
       const next = deserialize(saved);
       if (next.nodes.some(isStepNode)) showLoading('이전 작업의 STEP 모델 복원 중...');
       const missing = await restoreSources(next.nodes);
+    migrateStepNodes(next.nodes);
       state.nodes = next.nodes;
       state.nextId = next.nextId;
       state.selection = [];

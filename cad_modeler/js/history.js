@@ -172,7 +172,8 @@ export function cmdReplaceState(newState) {
     label: 'Load',
     do(state) {
       prev = { nodes: state.nodes, selection: state.selection, nextId: state.nextId };
-      state.nodes = newState.nodes;
+      // 매번 새 복사본 — 같은 배열을 쓰면 이후 추가된 노드가 Redo 때 되살아난다
+      state.nodes = structuredClone(newState.nodes);
       state.selection = newState.selection || [];
       state.nextId = newState.nextId;
     },

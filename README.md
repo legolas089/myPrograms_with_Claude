@@ -144,11 +144,17 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
   - 면: 평면이면 면적·법선, **원통면(구멍·축)이면 지름·축** — 평행 축 간 거리(볼트 패턴 간격), 축–평면 거리
   - **선택 2개: 최소거리 / 간섭** — 두 도형/파트의 표면 간 최소거리, 면 접촉, 간섭(겹친 체적 mm³) 판정
 - **Outliner**: 좌측 계층 트리 — 선택, 표시/숨김, 더블클릭 이름변경, 노드 ID 표시
+  - Boolean 의 입력 도형(예: 구멍 실린더)을 선택하면 3D 화면에 주황색 윤곽선으로 표시되고, 기즈모로 끌면 윤곽선이 따라 움직임
+  - Boolean 의 입력 도형은 삭제되지 않음 (결과가 사라지는 것 방지) — Boolean 을 먼저 지우거나 함께 선택해 지움
 - **보기**: Iso/Top/Front/Right/Fit (단축키 0/7/1/3/F), 장면 크기에 맞춰 그리드 자동 조정
 - **Undo/Redo** (Ctrl+Z, Ctrl+Y): 작업 스택 기반 명령 패턴
 - **자동 저장**: 작업 상태를 브라우저에 자동 저장 — 새로고침해도 이어서 작업 (`New`로 비우기)
 - **JSON 저장/불러오기** (Ctrl+S, Ctrl+O): 명령 트리를 직렬화 — 재로드 후에도 STEP 재생성 가능
-- **STL / STEP 내보내기**: 선택 항목만, 선택이 없으면 STEP 참조 모델을 뺀 전체 (STEP은 ISO-10303-21 AP214 Faceted BREP)
+- **STL 내보내기**: 선택 항목만(1개면 `<이름>.stl`), 선택이 없으면 STEP 참조 모델을 뺀 전체
+- **STEP 내보내기** (AP214 faceted B-rep): 선택 1개 → 파트 `<이름>.stp`, 여러 개 → 선택 어셈블리 `selection.step`, 선택 없음 → 보이는 전체 어셈블리 `assembly.step` (구성품마다 이름 있는 파트)
+  - 쓰기 전에 정점 병합·T-접합 보수 후 같은 평면의 삼각형을 다각형 면 하나로 합쳐 면 수를 줄임 → 다른 CAD에서 빨리 열림
+  - 삼각형이 많으면(30만 개 이상) 내보내기 전에 확인
+- STEP 읽기는 Web Worker에서 실행 — 큰 파일을 불러오는 동안에도 화면이 멈추지 않음
 - **스크립트 API (`window.cad`)**: 브라우저 콘솔에서 모델링·측정을 코드로 수행 (Claude가 브라우저로 직접 모델링할 때 사용). 모든 변경은 Undo 가능
   - `cad.help()`로 전체 목록 — `add`, `boolean`, `update`, `move`, `moveTo`, `rotate`, `remove`, `select`, `importStep(url)`, `bbox`, `distance`, `view`, `lastMeasure` 등
   - `cad_modeler/models/`에 둔 STEP은 `await cad.importStep('models/파일명.step')`으로 불러옴 (이 폴더는 git 제외)

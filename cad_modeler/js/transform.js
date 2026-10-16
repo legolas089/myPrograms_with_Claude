@@ -80,8 +80,10 @@ export class TransformPanel {
         const newParams = { ...node.params, [f.key]: v };
         this.history.apply({
           label: 'Edit param',
-          do: (s) => { const n = s.nodes.find(x => x.id === node.id); if (n) { n._prevParams = n.params; n.params = newParams; } },
-          undo: (s) => { const n = s.nodes.find(x => x.id === node.id); if (n && n._prevParams) { n.params = n._prevParams; delete n._prevParams; } },
+          // 이전 값은 명령 안에 보관 (노드에 두면 연속 편집 시 Undo 가 깨진다)
+          prev: undefined,
+          do(s) { const n = s.nodes.find(x => x.id === node.id); if (n) { this.prev = n.params; n.params = newParams; } },
+          undo(s) { const n = s.nodes.find(x => x.id === node.id); if (n && this.prev) n.params = this.prev; },
         });
       });
       row.appendChild(inp);
@@ -128,8 +130,9 @@ export class TransformPanel {
     const id = this._currentNodeId;
     this.history.apply({
       label: 'Transform',
-      do: (s) => { const n = s.nodes.find(x => x.id === id); if (n) { n._prevT = n.transform; n.transform = newT; } },
-      undo: (s) => { const n = s.nodes.find(x => x.id === id); if (n && n._prevT) { n.transform = n._prevT; delete n._prevT; } },
+      prev: undefined,
+      do(s) { const n = s.nodes.find(x => x.id === id); if (n) { this.prev = n.transform; n.transform = newT; } },
+      undo(s) { const n = s.nodes.find(x => x.id === id); if (n && this.prev) n.transform = this.prev; },
     });
   }
 }
