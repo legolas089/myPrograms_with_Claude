@@ -61,8 +61,9 @@ function buildThreeMesh(meshData, partId) {
 
   if (meshData.brep_faces && meshData.brep_faces.length > 0) {
     for (const face of meshData.brep_faces) {
+      // occt-import-js 의 brep_faces.last 는 마지막 삼각형을 포함하는 인덱스
       const start = face.first;
-      const count = face.last - face.first;
+      const count = face.last - face.first + 1;
 
       let mat;
       if (face.color) {
@@ -108,17 +109,24 @@ function buildBoundaryEdges(geometry, brepFaces) {
   const triToGroup = new Int32Array(index.length / 3).fill(-1);
   for (let gi = 0; gi < brepFaces.length; gi++) {
     const face = brepFaces[gi];
-    for (let t = face.first; t < face.last; t++) {
+    for (let t = face.first; t <= face.last; t++) {
       triToGroup[t] = gi;
     }
   }
 
-  // Build edge map: edge key -> [groupIndex, groupIndex, ...]
-  const edgeMap = new Map();
-  function edgeKey(a, b) {
-    return a < b ? `${a}_${b}` : `${b}_${a}`;
+  // occt 는 B-rep 면마다 정점을 따로 만들기 때문에 index 가 아니라 위치로 정점을 식별해야
+  // 서로 다른 면이 공유하는 모서리를 찾을 수 있다
+  const posKeyToId = new Map();
+  const vid = new Int32Array(posAttr.count);
+  for (let i = 0; i < posAttr.count; i++) {
+    const k = `${Math.round(posAttr.getX(i) * 1e4)},${Math.round(posAttr.getY(i) * 1e4)},${Math.round(posAttr.getZ(i) * 1e4)}`;
+    let id = posKeyToId.get(k);
+    if (id === undefined) { id = posKeyToId.size; posKeyToId.set(k, id); }
+    vid[i] = id;
   }
 
+  // Build edge map: edge key -> { groups, count, a, b (vertex indices) }
+  const edgeMap = new Map();
   for (let t = 0; t < index.length / 3; t++) {
     const i0 = index[t * 3];
     const i1 = index[t * 3 + 1];
@@ -126,18 +134,20 @@ function buildBoundaryEdges(geometry, brepFaces) {
     const g = triToGroup[t];
     const edges = [[i0, i1], [i1, i2], [i2, i0]];
     for (const [a, b] of edges) {
-      const key = edgeKey(a, b);
-      if (!edgeMap.has(key)) edgeMap.set(key, new Set());
-      edgeMap.get(key).add(g);
+      const va = vid[a], vb = vid[b];
+      if (va === vb) continue;
+      const key = va < vb ? `${va}_${vb}` : `${vb}_${va}`;
+      let e = edgeMap.get(key);
+      if (!e) { e = { groups: new Set(), count: 0, a, b }; edgeMap.set(key, e); }
+      e.groups.add(g);
+      e.count++;
     }
   }
 
-  // Collect boundary edges per group (edges between different groups)
+  // Collect boundary edges per group (edges between different groups, or open edges)
   const boundaryByGroup = new Map();
-  for (const [key, groups] of edgeMap) {
-    if (groups.size > 1 || (groups.size === 1 && groups.has(-1))) {
-      const [aStr, bStr] = key.split('_');
-      const a = parseInt(aStr), b = parseInt(bStr);
+  for (const { groups, count, a, b } of edgeMap.values()) {
+    if (groups.size > 1 || count === 1 || groups.has(-1)) {
       const ax = posAttr.getX(a), ay = posAttr.getY(a), az = posAttr.getZ(a);
       const bx = posAttr.getX(b), by = posAttr.getY(b), bz = posAttr.getZ(b);
       const seg = {

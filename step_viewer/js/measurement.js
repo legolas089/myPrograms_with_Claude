@@ -166,7 +166,7 @@ function identifyElement(intersect, type) {
     if (brepFaces && groupIdx >= 0 && groupIdx < brepFaces.length) {
       const face = brepFaces[groupIdx];
       const triangles = [];
-      for (let t = face.first; t < face.last; t++) {
+      for (let t = face.first; t <= face.last; t++) {
         const a = new THREE.Vector3().fromBufferAttribute(posAttr, idx[t * 3]);
         const b = new THREE.Vector3().fromBufferAttribute(posAttr, idx[t * 3 + 1]);
         const c = new THREE.Vector3().fromBufferAttribute(posAttr, idx[t * 3 + 2]);
