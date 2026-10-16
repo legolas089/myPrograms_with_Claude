@@ -58,6 +58,41 @@ export function cmdAddNode(node) {
   };
 }
 
+// STEP 가져오기처럼 여러 노드를 한 번의 Undo 단위로 추가
+export function cmdAddNodes(nodes, label = 'Add nodes') {
+  const ids = new Set(nodes.map(n => n.id));
+  return {
+    label,
+    do(state) { state.nodes.push(...nodes); state.selection = []; },
+    undo(state) {
+      state.nodes = state.nodes.filter(n => !ids.has(n.id));
+      state.selection = state.selection.filter(id => !ids.has(id));
+    },
+  };
+}
+
+// 여러 노드의 transform 을 한 번에 교체 (기즈모 커밋, API)
+export function cmdSetTransforms(updates, label = 'Transform') {
+  const prev = new Map();
+  return {
+    label,
+    do(state) {
+      for (const u of updates) {
+        const n = state.nodes.find(x => x.id === u.id);
+        if (!n) continue;
+        prev.set(u.id, n.transform);
+        n.transform = u.transform;
+      }
+    },
+    undo(state) {
+      for (const [id, t] of prev) {
+        const n = state.nodes.find(x => x.id === id);
+        if (n) n.transform = t;
+      }
+    },
+  };
+}
+
 export function cmdDeleteNode(nodeId) {
   let removed = null;
   let index = -1;

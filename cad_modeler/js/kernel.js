@@ -2,6 +2,7 @@
 // three-bvh-csg 로 boolean 연산을 수행하는 모델링 커널
 import * as THREE from 'three';
 import { Brush, Evaluator, ADDITION, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
+import { getPart } from './stepstore.js';
 
 const evaluator = new Evaluator();
 evaluator.useGroups = false;
@@ -110,12 +111,19 @@ export function evaluateNode(node, nodeMap) {
     }
     return geom;
   }
+  if (node.type === 'step') {
+    // STEP 참조 파트: 원본 메쉬가 아직 로드되지 않았으면 null
+    const part = getPart(node.source, node.mesh);
+    if (!part) return null;
+    return applyTransformToGeometry(part.geometry, node.transform);
+  }
   // primitive
   const geom = buildPrimitiveGeometry(node.type, node.params);
   return applyTransformToGeometry(geom, node.transform);
 }
 
 export function isBooleanNode(node) { return node.type === 'boolean'; }
+export function isStepNode(node) { return node.type === 'step'; }
 export function isPrimitiveNode(node) { return PRIMITIVE_FIELDS[node.type] !== undefined; }
 
 export function identityTransform() {

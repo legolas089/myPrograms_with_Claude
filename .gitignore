@@ -3,3 +3,7 @@ __pycache__/
 *.pyo
 .DS_Store
 .claude/worktrees/
+
+# CAD Modeler: STEP models loaded by server path (large, not committed)
+cad_modeler/models/*
+!cad_modeler/models/README.md

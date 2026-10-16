@@ -56,6 +56,12 @@
       "port": 3007
     },
     {
+      "name": "cad_modeler_dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["http-server", "cad_modeler", "-p", "3017", "-c-1"],
+      "port": 3017
+    },
+    {
       "name": "robot_arm_sim_3D_3DOF",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["http-server", "robot_arm_sim_3D_3DOF", "-p", "3009", "-c-1"],

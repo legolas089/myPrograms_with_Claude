@@ -19,21 +19,34 @@
 <body>
   <div id="loading-overlay">
     <div class="loading-spinner"></div>
-    <p id="loading-text">CAD 커널 로딩 중... (최초 1회 ~30MB 다운로드)</p>
+    <p id="loading-text">CAD 커널 로딩 중...</p>
+  </div>
+
+  <div id="drop-overlay">
+    <div class="drop-message">.STEP / .STP (또는 scene .json) 파일을 여기에 놓으세요</div>
   </div>
 
   <div id="sidebar">
     <h2>Outliner</h2>
     <div id="tree-container"></div>
     <div id="sidebar-footer">
-      <button id="btn-rename" title="이름 변경 (F2)">이름</button>
-      <button id="btn-toggle-vis" title="표시/숨김 (V)">표시</button>
+      <button id="btn-rename" title="이름 변경">이름</button>
+      <button id="btn-toggle-vis" title="표시/숨김">표시</button>
       <button id="btn-delete" title="삭제 (Del)">삭제</button>
     </div>
   </div>
 
   <div id="viewer-container">
     <div id="toolbar">
+      <div class="toolbar-group">
+        <span class="group-label">파일</span>
+        <button class="tb-btn" data-action="new-scene" title="새 장면">New</button>
+        <button class="tb-btn accent" data-action="import-step" title="STEP 파일을 참조 모델로 가져오기 (끌어다 놓기도 가능)">&#128230; STEP 열기</button>
+        <button class="tb-btn" data-action="save-json" title="JSON 저장 (Ctrl+S)">&#128190; Save</button>
+        <button class="tb-btn" data-action="load-json" title="JSON 불러오기 (Ctrl+O)">&#128193; Load</button>
+        <button class="tb-btn" data-action="export-stl" title="STL 내보내기 (선택 항목, 없으면 STEP 참조 모델 제외 전체)">STL</button>
+        <button class="tb-btn" data-action="export-step" title="STEP 내보내기 (선택 항목, 없으면 STEP 참조 모델 제외 전체)">STEP</button>
+      </div>
       <div class="toolbar-group">
         <span class="group-label">생성</span>
         <button class="tb-btn" data-action="add-box" title="박스 추가">&#9633; Box</button>
@@ -44,29 +57,66 @@
       <div class="toolbar-group">
         <span class="group-label">Boolean</span>
         <button class="tb-btn" data-action="bool-union" title="합집합">&cup; Union</button>
-        <button class="tb-btn" data-action="bool-subtract" title="차집합">&minus; Cut</button>
+        <button class="tb-btn" data-action="bool-subtract" title="차집합 (첫 선택 − 두번째 선택)">&minus; Cut</button>
         <button class="tb-btn" data-action="bool-intersect" title="교집합">&cap; Int</button>
       </div>
       <div class="toolbar-group">
-        <span class="group-label">파일</span>
-        <button class="tb-btn" data-action="save-json" title="JSON 저장 (Ctrl+S)">&#128190; Save</button>
-        <button class="tb-btn" data-action="load-json" title="JSON 불러오기 (Ctrl+O)">&#128193; Load</button>
-        <button class="tb-btn" data-action="export-stl" title="STL 내보내기">STL</button>
-        <button class="tb-btn" data-action="export-step" title="STEP 내보내기">STEP</button>
+        <span class="group-label">편집</span>
+        <button class="tb-btn toggle" data-action="gizmo-translate" title="축 이동 기즈모 (W)">&#10021; 이동</button>
+        <button class="tb-btn toggle" data-action="gizmo-rotate" title="축 회전 기즈모 (E)">&#10227; 회전</button>
+        <label class="tb-field" title="이동 스냅 간격 (mm, 0 = 끔) · 회전 스냅은 15°">스냅
+          <input id="snap-input" type="number" value="1" min="0" step="0.5"> mm
+        </label>
+        <button class="tb-btn" data-action="to-origin" title="선택 항목의 bbox 중심을 원점(0,0,0)으로 이동">원점</button>
+        <button class="tb-btn toggle" data-action="measure" title="측정 (M)">&#128207; 측정</button>
       </div>
       <div class="toolbar-group">
         <span class="group-label">기록</span>
-        <button class="tb-btn" data-action="undo" title="되돌리기 (Ctrl+Z)">&#8630; Undo</button>
-        <button class="tb-btn" data-action="redo" title="재실행 (Ctrl+Y)">&#8631; Redo</button>
+        <button class="tb-btn" data-action="undo" title="되돌리기 (Ctrl+Z)">&#8630;</button>
+        <button class="tb-btn" data-action="redo" title="재실행 (Ctrl+Y)">&#8631;</button>
       </div>
       <div class="toolbar-group">
-        <span class="group-label">표시</span>
+        <span class="group-label">보기</span>
+        <button class="tb-btn" data-action="view-iso" title="등각 (0)">Iso</button>
+        <button class="tb-btn" data-action="view-top" title="위 (7)">Top</button>
+        <button class="tb-btn" data-action="view-front" title="정면 (1)">Front</button>
+        <button class="tb-btn" data-action="view-right" title="오른쪽 (3)">Right</button>
+        <button class="tb-btn" data-action="view-fit" title="전체 맞춤 (F)">Fit</button>
+        <button class="tb-btn toggle" data-action="toggle-xray" data-pressed="false" title="STEP 참조 모델 반투명">X-ray</button>
         <button class="tb-btn toggle" data-action="toggle-grid" data-pressed="true" title="그리드">Grid</button>
         <button class="tb-btn toggle" data-action="toggle-dims" data-pressed="true" title="치수 표시">Dim</button>
       </div>
     </div>
 
     <canvas id="viewer-canvas"></canvas>
+
+    <div id="measure-panel">
+      <div class="mp-title">측정</div>
+      <div class="measure-step" id="m-step1">
+        <div class="step-header"><span class="step-dot dot-red"></span>첫 번째</div>
+        <div class="step-buttons">
+          <button class="pick-type-btn" data-step="1" data-type="point">&#11044; 점</button>
+          <button class="pick-type-btn" data-step="1" data-type="edge">&#9135; 선</button>
+          <button class="pick-type-btn" data-step="1" data-type="face">&#11036; 면</button>
+        </div>
+        <div class="step-info" id="m-info1">유형을 선택하세요</div>
+      </div>
+      <div class="measure-step disabled" id="m-step2">
+        <div class="step-header"><span class="step-dot dot-orange"></span>두 번째</div>
+        <div class="step-buttons">
+          <button class="pick-type-btn" data-step="2" data-type="point">&#11044; 점</button>
+          <button class="pick-type-btn" data-step="2" data-type="edge">&#9135; 선</button>
+          <button class="pick-type-btn" data-step="2" data-type="face">&#11036; 면</button>
+        </div>
+        <div class="step-info" id="m-info2">유형을 선택하세요</div>
+      </div>
+      <div id="measure-result"></div>
+      <div class="mp-section">
+        <button id="btn-node-distance" title="선택한 두 도형/파트 사이 최소거리와 간섭 여부">선택 2개: 최소거리 / 간섭</button>
+        <div id="node-distance-result"></div>
+      </div>
+      <div class="mp-hint">구멍·축은 <b>면</b>으로 벽을 클릭하면 지름과 축이 나오고, 거리는 축(중심선) 기준으로 잽니다. 원형 모서리를 <b>선</b>으로 골라도 지름·중심이 나옵니다(STEP 모델).</div>
+    </div>
 
     <div id="transform-panel">
       <h3 id="tp-title">선택 없음</h3>
@@ -94,7 +144,7 @@
 
     <div id="status-bar">
       <span id="status-text">준비됨</span>
-      <span id="status-count">0개 도형</span>
+      <span id="status-count">0개 노드</span>
     </div>
   </div>
 
@@ -111,6 +161,7 @@
   </div>
 
   <input type="file" id="json-file-input" accept=".json" hidden>
+  <input type="file" id="step-file-input" accept=".step,.stp,.STEP,.STP" multiple hidden>
 
   <script type="module" src="js/main.js"></script>
 </body>

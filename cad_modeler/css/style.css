@@ -134,7 +134,6 @@ body {
 /* Transform panel (right floating) */
 #transform-panel {
   position: absolute;
-  top: 60px;
   right: 12px;
   width: 240px;
   background: rgba(40, 40, 40, 0.92);
@@ -312,3 +311,82 @@ body {
 .toast.error { border-color: #c42b1c; color: #ff6b5e; }
 .toast.success { border-color: #4ec9b0; color: #4ec9b0; }
 @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Toolbar extras */
+.tb-btn.accent { background: #0e639c; border-color: #1177bb; color: #fff; }
+.tb-btn.accent:hover { background: #1177bb; }
+.tb-field {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: #999; margin: 0 4px;
+}
+.tb-field input {
+  width: 46px; background: #1e1e1e; border: 1px solid #3c3c3c; color: #ddd;
+  padding: 4px; border-radius: 2px; font-size: 11px;
+}
+
+/* Floating panels sit under the (wrapping) toolbar */
+#transform-panel { top: calc(var(--tb-h, 48px) + 10px); }
+
+/* Outliner extras */
+.tree-node .node-id { font-size: 10px; color: #666; }
+.tree-node.selected .node-id { color: #9cc; }
+.tree-node .node-arrow { width: 10px; color: #888; cursor: pointer; }
+.tree-group { font-weight: 600; }
+.tree-group.missing .node-name { color: #e5a050; }
+
+/* Drop overlay */
+#drop-overlay {
+  position: fixed; inset: 0; z-index: 900; display: none;
+  align-items: center; justify-content: center;
+  background: rgba(14, 99, 156, 0.25); border: 3px dashed #1177bb;
+  pointer-events: none;
+}
+#drop-overlay.active { display: flex; }
+.drop-message {
+  padding: 16px 24px; background: rgba(30, 30, 30, 0.9); border-radius: 6px;
+  font-size: 15px; color: #fff;
+}
+
+/* Measure panel */
+#measure-panel {
+  position: absolute; left: 12px; bottom: 34px; max-height: calc(100% - var(--tb-h, 48px) - 50px); overflow-y: auto;
+  width: 260px; display: none;
+  background: rgba(40, 40, 40, 0.94); border: 1px solid #3c3c3c; border-radius: 4px;
+  padding: 10px; font-size: 12px; backdrop-filter: blur(4px);
+}
+#measure-panel.active { display: block; }
+.mp-title { font-size: 12px; text-transform: uppercase; color: #4ec9b0; margin-bottom: 8px; letter-spacing: 0.5px; }
+.measure-step { padding: 6px; border-radius: 3px; margin-bottom: 6px; background: #2a2a2a; }
+.measure-step.disabled { opacity: 0.4; pointer-events: none; }
+.measure-step.done { background: #263326; }
+.step-header { display: flex; align-items: center; gap: 6px; color: #bbb; margin-bottom: 6px; }
+.step-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.dot-red { background: #ff3333; }
+.dot-orange { background: #ff9900; }
+.step-buttons { display: flex; gap: 4px; }
+.pick-type-btn {
+  flex: 1; padding: 4px; background: #3c3c3c; border: 1px solid #4a4a4a; color: #ddd;
+  border-radius: 3px; cursor: pointer; font-size: 11px;
+}
+.pick-type-btn:hover { background: #4a4a4a; }
+.pick-type-btn.active { background: #094771; border-color: #1177bb; color: #fff; }
+.step-info { margin-top: 6px; font-size: 11px; color: #999; line-height: 1.4; word-break: break-all; }
+#measure-result { display: none; padding: 8px; background: #33331a; border: 1px solid #666622; border-radius: 3px; margin-bottom: 6px; }
+#measure-result.active { display: block; }
+.mr-main { font-size: 18px; font-weight: 600; color: #ffff66; }
+.mr-sub { font-size: 11px; color: #ccc; margin-top: 2px; }
+.mp-section { border-top: 1px solid #3c3c3c; padding-top: 8px; margin-top: 4px; }
+#btn-node-distance {
+  width: 100%; padding: 5px; background: #3c3c3c; border: 1px solid #4a4a4a; color: #ddd;
+  border-radius: 3px; cursor: pointer; font-size: 11px;
+}
+#btn-node-distance:hover { background: #4a4a4a; }
+#node-distance-result { margin-top: 6px; font-size: 12px; color: #ccc; min-height: 14px; }
+#node-distance-result .bad { color: #ff6b5e; font-weight: 600; }
+.mp-hint { margin-top: 8px; font-size: 10px; color: #777; line-height: 1.4; }
+#measure-label {
+  position: absolute; display: none; transform: translate(-50%, -130%);
+  padding: 2px 8px; background: rgba(0, 0, 0, 0.8); border: 1px solid #ffff66; border-radius: 3px;
+  color: #ffff66; font-size: 12px; font-weight: 600; pointer-events: none; white-space: nowrap;
+}
+canvas.measure-cursor { cursor: crosshair; }

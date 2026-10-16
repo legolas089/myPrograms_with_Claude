@@ -62,6 +62,29 @@ export function initScene(canvas) {
   return { scene, camera, renderer, controls, grid, axes };
 }
 
+// 장면 크기에 맞춰 그리드를 다시 만든다 (칸 간격은 1·2·5×10ⁿ mm 중 하나, 약 20칸)
+export function fitGrid(scene, box) {
+  const old = scene.getObjectByName('__grid__');
+  if (!old) return;
+  const ext = box.isEmpty() ? 100 : Math.max(Math.abs(box.min.x), Math.abs(box.max.x), Math.abs(box.min.y), Math.abs(box.max.y), 10);
+  const raw = (ext * 2.4) / 20;
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 5, 10].map(m => m * p).find(s => s >= raw);
+  const div = Math.ceil((ext * 2.4) / step / 2) * 2;
+  if (old.userData.step === step && old.userData.div === div) return;
+  const grid = new THREE.GridHelper(step * div, div, 0x4ec9b0, 0x444444);
+  grid.rotation.x = Math.PI / 2;
+  grid.name = '__grid__';
+  grid.visible = old.visible;
+  grid.userData = { step, div };
+  scene.remove(old);
+  old.geometry.dispose();
+  old.material.dispose?.();
+  scene.add(grid);
+  const axes = scene.getObjectByName('__axes__');
+  if (axes) axes.scale.setScalar(Math.max(1, (step * div) / 200));
+}
+
 export function setGridVisible(scene, visible) {
   const g = scene.getObjectByName('__grid__');
   const a = scene.getObjectByName('__axes__');

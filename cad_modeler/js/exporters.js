@@ -4,13 +4,16 @@ import { STLExporter } from 'three/addons/exporters/STLExporter.js';
 import { evaluateNode, isBooleanNode } from './kernel.js';
 import { triggerDownload } from './persistence.js';
 
-// 출력 대상 결정: boolean 노드 + 어디에도 소비되지 않은 primitive 노드
-function topLevelNodes(state) {
+// 출력 대상 결정: boolean 노드 + 어디에도 소비되지 않은 primitive 노드.
+// 선택이 있으면 선택한 것만, 없으면 STEP 참조 모델을 뺀 전부.
+export function topLevelNodes(state) {
   const consumed = new Set();
   for (const n of state.nodes) {
     if (isBooleanNode(n)) { consumed.add(n.a); consumed.add(n.b); }
   }
-  return state.nodes.filter(n => !consumed.has(n.id) && n.visible !== false);
+  const out = state.nodes.filter(n => !consumed.has(n.id) && n.visible !== false);
+  const sel = new Set(state.selection);
+  return sel.size ? out.filter(n => sel.has(n.id)) : out.filter(n => n.type !== 'step');
 }
 
 export function exportSTL(state, filename) {

@@ -128,18 +128,30 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 **OCR 사용 시**: Python + `pip install pix2tex flask flask-cors` 필요
 
 ### 9. Simple CAD Modeler (`cad_modeler/`)
-간단한 3D 모델링 워크벤치 — 박스/실린더/구/원뿔을 만들고 합치고 빼고 STL/STEP으로 저장
+간단한 3D 모델링 워크벤치 — 기존 STEP 모델(예: 드론 프레임)을 참조로 불러와 그 위에 박스/실린더/구/원뿔로 부품을 만들고, 축 이동·측정·간섭 검사로 조립성을 확인한 뒤 STL/STEP으로 저장
 
+- **STEP 참조 모델 불러오기**: `STEP 열기` 버튼 또는 끌어다 놓기 (.step/.stp, 여러 개 가능)
+  - occt-import-js(WASM)로 읽어 파트별 노드로 분리 — Outliner에서 파일 단위 그룹으로 접기/전체 선택/전체 숨김
+  - 원본 STEP은 브라우저(IndexedDB)에 보관 → 새로고침해도 자동 복원, JSON을 다시 불러올 때도 자동 연결
+  - Y-up 모델은 회전 기즈모(E)나 `cad.rotate(ids, [90,0,0])`로 Z-up으로 맞춤, `원점` 버튼으로 선택 항목을 원점에 배치
+  - `X-ray` 토글로 참조 모델 반투명 표시
 - **기본 도형 생성**: Box, Cylinder, Sphere, Cone (파라미터 입력 다이얼로그)
-- **Transform**: 위치/회전/크기 — 수치 입력 패널로 정밀 편집
+- **축 이동/회전 기즈모**: 선택한 도형·파트(여러 개 동시 가능)를 X/Y/Z 화살표로 끌어 이동(W), 링으로 회전(E) — 스냅 간격(mm) 지정, 회전 스냅 15°, 놓는 순간 한 번의 Undo 단위로 기록
+- **Transform 패널**: 위치/회전/크기 — 수치 입력으로 정밀 편집
 - **Boolean 연산**: Union(합집합), Subtract(차), Intersect(교집합) — three-bvh-csg 기반
-- **Outliner**: 좌측 계층 트리 — 선택, 표시/숨김, 더블클릭 이름변경
-- **그리드 + 치수 표시**: 우측 패널에 선택 도형의 bbox/중심/삼각형 수
+- **측정 (M)**: 점/선/면을 두 번 골라 최단거리 + ΔX/ΔY/ΔZ + 방향 사이 각도
+  - 선: 길이, 원형 모서리면 지름(Ø)·중심, 원호면 반지름·각도 — 거리는 원 중심 기준
+  - 면: 평면이면 면적·법선, **원통면(구멍·축)이면 지름·축** — 평행 축 간 거리(볼트 패턴 간격), 축–평면 거리
+  - **선택 2개: 최소거리 / 간섭** — 두 도형/파트의 표면 간 최소거리, 면 접촉, 간섭(겹친 체적 mm³) 판정
+- **Outliner**: 좌측 계층 트리 — 선택, 표시/숨김, 더블클릭 이름변경, 노드 ID 표시
+- **보기**: Iso/Top/Front/Right/Fit (단축키 0/7/1/3/F), 장면 크기에 맞춰 그리드 자동 조정
 - **Undo/Redo** (Ctrl+Z, Ctrl+Y): 작업 스택 기반 명령 패턴
+- **자동 저장**: 작업 상태를 브라우저에 자동 저장 — 새로고침해도 이어서 작업 (`New`로 비우기)
 - **JSON 저장/불러오기** (Ctrl+S, Ctrl+O): 명령 트리를 직렬화 — 재로드 후에도 STEP 재생성 가능
-- **STL 내보내기**: ASCII STL (Three.js STLExporter)
-- **STEP 내보내기**: ISO-10303-21 AP214 Faceted BREP — `step_viewer`로 다시 열어 왕복 검증 가능
-- **단축키**: F = 카메라 프레이밍, Del = 삭제
+- **STL / STEP 내보내기**: 선택 항목만, 선택이 없으면 STEP 참조 모델을 뺀 전체 (STEP은 ISO-10303-21 AP214 Faceted BREP)
+- **스크립트 API (`window.cad`)**: 브라우저 콘솔에서 모델링·측정을 코드로 수행 (Claude가 브라우저로 직접 모델링할 때 사용). 모든 변경은 Undo 가능
+  - `cad.help()`로 전체 목록 — `add`, `boolean`, `update`, `move`, `moveTo`, `rotate`, `remove`, `select`, `importStep(url)`, `bbox`, `distance`, `view`, `lastMeasure` 등
+  - `cad_modeler/models/`에 둔 STEP은 `await cad.importStep('models/파일명.step')`으로 불러옴 (이 폴더는 git 제외)
 
 **실행**: `CAD Modeler.bat` 또는 `dist/CADModeler.exe` 더블클릭 (http://localhost:3007)
 
