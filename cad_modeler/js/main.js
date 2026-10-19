@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { initScene, setGridVisible, fitGrid } from './scene.js';
-import { defaultParams, PRIMITIVE_FIELDS, evaluateNode, isStepNode } from './kernel.js';
+import { defaultParams, PRIMITIVE_FIELDS, evaluateNode, isStepNode, nodeInputs } from './kernel.js';
 import {
   attachMeshGroup, rebuildScene, highlightSelection, frameAll, frameBox, pickMeshAt,
   getMeshForNode, getSceneBox, setStepOpacity, updateGhosts, getGhostForNode,
@@ -14,11 +14,17 @@ import { parseStep, saveBytes, uniqueKey, hasSource, restoreSources, migrateStep
 import { Gizmo } from './gizmo.js';
 import { Measure } from './measure.js';
 import { createApi } from './api.js';
+import { checkNode, cachedReport } from './health.js';
+import { checkRules } from './params.js';
 
 const state = {
   nodes: [],
   selection: [],
   nextId: 1,
+  params: {},     // 설계 파라미터 (params.js)
+  sketches: {},
+  rules: [],
+  specs: [],     // 도면 치수 검증표
 };
 
 const canvas = document.getElementById('viewer-canvas');
@@ -85,13 +91,139 @@ function redraw() {
   fitGrid(ctx.scene, getSceneBox());
   refreshSelectionUI();
   measure.onSceneRebuilt();
-  scheduleAutosave();
+  scheduleHealth();
 }
+
+// --- 파라미터 패널: 값을 바꾸면 수식으로 연결된 치수가 모두 따라 바뀐다 (params.js) ---
+
+const paramsEl = document.getElementById('params-panel');
+function renderParamsPanel() {
+  const entries = Object.entries(state.params || {});
+  paramsEl.innerHTML = '';
+  const h = document.createElement('h3');
+  h.textContent = `파라미터 (${entries.length})`;
+  paramsEl.appendChild(h);
+  if (!entries.length) {
+    const e = document.createElement('div');
+    e.className = 'pp-empty';
+    e.textContent = '없음 — cad.params({...}) 로 정의';
+    paramsEl.appendChild(e);
+    return;
+  }
+  for (const [name, p] of entries) {
+    const row = document.createElement('div');
+    row.className = 'pp-row';
+    const lbl = document.createElement('span');
+    lbl.className = 'pp-name';
+    lbl.textContent = name;
+    lbl.title = p.note || name;
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.step = 'any';
+    inp.value = p.value;
+    inp.addEventListener('change', () => {
+      const v = parseFloat(inp.value);
+      if (!Number.isFinite(v)) { inp.value = p.value; return; }
+      try {
+        const r = api.params({ [name]: v });
+        const c = r.check;
+        const bad = r.formulaErrors.length || (c && !c.ok);
+        toast(`${name} = ${v} → 노드 ${r.changed.length}개 갱신`
+          + (r.healed ? ` · 메쉬 수치 문제 회피: ${r.healed.param} ${r.healed.from}→${r.healed.to}` : '')
+          + (r.formulaErrors.length ? ` · 수식 오류 ${r.formulaErrors.length}` : '')
+          + (c ? (c.ok ? ' · ✓ 형상 정상' : ` · ⚠ 오류 ${c.errors} 경고 ${c.warnings}: ${c.issues[0].message}`) : ''), bad ? 'error' : 'success');
+      } catch (err) {
+        inp.value = p.value;
+        toast(err.message, 'error');
+      }
+    });
+    const unit = document.createElement('span');
+    unit.className = 'pp-unit';
+    unit.textContent = p.unit || '';
+    row.append(lbl, inp, unit);
+    paramsEl.appendChild(row);
+  }
+  for (const r of checkRules(state)) {
+    const e = document.createElement('div');
+    e.className = 'pp-rule bad';
+    e.textContent = `⚠ ${r.expr} — ${r.message}`;
+    paramsEl.appendChild(e);
+  }
+  // 도면 치수 검증표 (마지막 형상 검사 때 계산한 값)
+  const sp = healthSummary.specs;
+  if (sp && sp.rows.length) {
+    const h2 = document.createElement('h3');
+    h2.textContent = `도면 치수 검증 (${sp.rows.filter(r => r.ok).length}/${sp.rows.length})`;
+    paramsEl.appendChild(h2);
+    for (const r of sp.rows) {
+      const row = document.createElement('div');
+      row.className = `pp-row pp-spec ${r.ok ? 'ok' : 'bad'}`;
+      row.title = r.error || `기대 ${r.expect} · 차이 ${r.delta} · 허용 ±${r.tol}${r.note ? ' · ' + r.note : ''}`;
+      row.innerHTML = '<span class="pp-name"></span><span class="pp-val"></span><span class="pp-unit"></span>';
+      row.children[0].textContent = r.name;
+      row.children[1].textContent = r.error ? '오류' : String(r.actual);
+      row.children[2].textContent = r.ok ? '✓' : '✗';
+      paramsEl.appendChild(row);
+    }
+  }
+}
+
+// --- 형상 검사 (열린 면·Boolean 실패 등) ---
+// 장면이 바뀔 때마다 아직 검사하지 않은 노드를 한 개씩 나눠 검사하고 Outliner 에 ⚠ 로 표시한다.
+// 결과는 노드 내용 키로 캐시되므로 보통은 방금 바뀐 노드만 계산한다
+
+let _healthTimer = null, _healthGen = 0;
+const healthSummary = { errors: 0, warnings: 0, pending: false, issues: [] };
+let _lastIssueSig = '';
+function scheduleHealth() {
+  clearTimeout(_healthTimer);
+  const gen = ++_healthGen;
+  healthSummary.pending = true;
+  _healthTimer = setTimeout(() => runHealth(gen), 300);
+}
+async function runHealth(gen) {
+  const nodeMap = new Map(state.nodes.map(n => [n.id, n]));
+  const consumed = new Set(state.nodes.flatMap(nodeInputs));
+  for (const n of state.nodes) {
+    if (gen !== _healthGen) return;
+    const top = !consumed.has(n.id); // 최상위 결과는 위상까지, 입력으로 쓰인 중간 노드는 가볍게
+    const cached = cachedReport(n, nodeMap);
+    if (cached && (cached.full || !top)) continue;
+    try { checkNode(n, nodeMap, new Map(), top); } catch (err) { console.warn('형상 검사 실패:', n.id, err); }
+    renderOutliner(treeEl, state, outlinerCallbacks);
+    await new Promise(r => setTimeout(r, 0));
+  }
+  if (gen !== _healthGen) return;
+  const issues = [];
+  for (const n of state.nodes) {
+    const r = cachedReport(n, nodeMap);
+    if (r) for (const i of r.issues) issues.push({ id: n.id, name: n.name || n.type, ...i });
+  }
+  // 도면 치수 검증표도 함께 (파라미터 패널 아래 표시)
+  let specs = null;
+  if ((state.specs || []).length) { try { specs = api.specs(); } catch (err) { console.warn('검증표 계산 실패:', err); } }
+  Object.assign(healthSummary, {
+    pending: false, issues, specs,
+    errors: issues.filter(i => i.level === 'error').length,
+    warnings: issues.filter(i => i.level !== 'error').length,
+  });
+  renderOutliner(treeEl, state, outlinerCallbacks);
+  renderParamsPanel();
+  updateStatus();
+  const sig = issues.map(i => `${i.id}:${i.code}`).join(',');
+  if (sig && sig !== _lastIssueSig) {
+    const first = issues.find(i => i.level === 'error') || issues[0];
+    toast(`형상 검사: 오류 ${healthSummary.errors} · 경고 ${healthSummary.warnings} — ${first.name}: ${first.message}`, healthSummary.errors ? 'error' : 'info');
+  }
+  _lastIssueSig = sig;
+}
+window.__health = healthSummary;
 
 function refreshSelectionUI() {
   highlightSelection(state.selection);
   updateGhosts(state);
   renderOutliner(treeEl, state, outlinerCallbacks);
+  renderParamsPanel();
   tpanel.refresh();
   gizmo.refresh();
   updateStatus();
@@ -101,7 +233,10 @@ function updateStatus() {
   const total = state.nodes.length;
   const missing = new Set(state.nodes.filter(n => isStepNode(n) && !hasSource(n.source)).map(n => n.source));
   statusCount.textContent = `${total}개 노드${state.selection.length ? ` · ${state.selection.length}개 선택` : ''}`
-    + (missing.size ? ` · STEP 파일 필요: ${[...missing].join(', ')}` : '');
+    + (missing.size ? ` · STEP 파일 필요: ${[...missing].join(', ')}` : '')
+    + (healthSummary.pending ? ' · 형상 검사 중…'
+      : (healthSummary.errors || healthSummary.warnings ? ` · ⚠ 오류 ${healthSummary.errors} · 경고 ${healthSummary.warnings}` : (total ? ' · ✓ 형상 정상' : '')))
+    + (healthSummary.specs ? ` · 치수 ${healthSummary.specs.rows.filter(r => r.ok).length}/${healthSummary.specs.rows.length}${healthSummary.specs.ok ? ' ✓' : ' ✗'}` : '');
 }
 
 function setStatus(msg) { statusText.textContent = msg; }
@@ -179,6 +314,9 @@ function handleAction(action, btn) {
         if (tris > 300000 && !confirm(`${plan.fileName}: 구성품 ${plan.nodes.length}개, 삼각형 약 ${Math.round(tris / 1000)}k개입니다.\n파일이 크고 변환에 시간이 걸릴 수 있습니다. 계속할까요?\n(파트 하나만 내보내려면 먼저 그 파트를 선택하세요)`)) break;
         const r = exportSTEP(state, plan);
         toast(`${r.fileName} 저장 — ${plan.assembly ? `어셈블리 구성품 ${r.components}개, ` : ''}면 ${r.faces}개 (삼각형 ${r.triangles}개)`, 'success');
+        if (healthSummary.errors || healthSummary.warnings) {
+          toast(`주의: 형상 검사 오류 ${healthSummary.errors} · 경고 ${healthSummary.warnings} 이 남은 채 저장했습니다 (Outliner 의 ⚠ 참고)`, 'error');
+        }
       } catch (err) {
         console.error(err);
         toast('STEP 내보내기 실패: ' + err.message, 'error');
@@ -461,6 +599,7 @@ const outlinerCallbacks = {
     refreshSelectionUI();
   },
   onRerender: () => renderOutliner(treeEl, state, outlinerCallbacks),
+  healthOf: (node) => cachedReport(node, new Map(state.nodes.map(n => [n.id, n]))),
   onToggleVisibility: (id) => {
     history.apply({
       label: 'Toggle visibility',
@@ -575,17 +714,6 @@ document.getElementById('json-file-input').addEventListener('change', async (e) 
   e.target.value = '';
 });
 
-// --- 자동 저장 (새로고침해도 작업 유지; STEP 원본은 IndexedDB) ---
-
-const AUTOSAVE_KEY = 'cad_modeler_autosave_v1';
-let _autosaveTimer = null;
-function scheduleAutosave() {
-  clearTimeout(_autosaveTimer);
-  _autosaveTimer = setTimeout(() => {
-    try { localStorage.setItem(AUTOSAVE_KEY, serialize(state)); } catch { /* 저장 공간 부족 등은 무시 */ }
-  }, 400);
-}
-
 // --- Toast ---
 
 let toastContainer = null;
@@ -615,31 +743,14 @@ window.cad = api;
 window.__cad = { state, history, ctx, gizmo, measure, frameAll: () => frameAll(ctx.camera, ctx.controls) };
 
 // --- 부팅 ---
+// 페이지를 열 때마다 빈 장면으로 시작한다. 이어서 작업할 때는 저장해 둔 STEP 을 다시 불러온다 (AGENTS.md)
 
 async function boot() {
-  let saved = null;
-  try { saved = localStorage.getItem(AUTOSAVE_KEY); } catch { /* 접근 불가 */ }
-  if (saved) {
-    try {
-      const next = deserialize(saved);
-      if (next.nodes.some(isStepNode)) showLoading('이전 작업의 STEP 모델 복원 중...');
-      const missing = await restoreSources(next.nodes);
-    migrateStepNodes(next.nodes);
-      state.nodes = next.nodes;
-      state.nextId = next.nextId;
-      state.selection = [];
-      if (missing.length) toast(`STEP 파일을 다시 불러오세요: ${missing.join(', ')}`, 'error');
-    } catch (err) {
-      console.warn('자동 저장 복원 실패:', err);
-    }
-  }
+  try { localStorage.removeItem('cad_modeler_autosave_v1'); } catch { /* 예전 자동 저장 정리 */ }
   hideLoading();
   redraw();
-  if (state.nodes.length) setView('iso');
   setGizmoMode('translate');
-  setStatus(state.nodes.length
-    ? `이전 작업 복원됨 (${state.nodes.length}개 노드)`
-    : '준비됨 — 도형을 추가하거나 STEP 파일을 끌어다 놓으세요');
+  setStatus('준비됨 — 도형을 추가하거나 STEP 파일을 끌어다 놓으세요');
 }
 if (document.readyState === 'complete') boot();
 else window.addEventListener('load', boot);

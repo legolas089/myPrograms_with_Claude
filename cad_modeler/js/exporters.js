@@ -1,7 +1,7 @@
 // STL: Three.js STLExporter / STEP: stepwriter.js (faceted B-rep, 파트 .stp · 어셈블리 .step)
 import * as THREE from 'three';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
-import { evaluateNode, isBooleanNode } from './kernel.js';
+import { evaluateNode, nodeInputs } from './kernel.js';
 import { triggerDownload } from './persistence.js';
 import { meshToFaces, writeStep } from './stepwriter.js';
 
@@ -18,14 +18,13 @@ export function exportNodes(state, { includeStep }) {
   if (sel.length) {
     const inside = new Set();
     const walk = n => {
-      if (!isBooleanNode(n)) return;
-      for (const c of [n.a, n.b]) { inside.add(c); const cn = byId.get(c); if (cn) walk(cn); }
+      for (const c of nodeInputs(n)) { inside.add(c); const cn = byId.get(c); if (cn) walk(cn); }
     };
     sel.forEach(walk);
     return sel.filter(n => !inside.has(n.id));
   }
   const consumed = new Set();
-  for (const n of state.nodes) if (isBooleanNode(n)) { consumed.add(n.a); consumed.add(n.b); }
+  for (const n of state.nodes) for (const id of nodeInputs(n)) consumed.add(id);
   return state.nodes.filter(n => !consumed.has(n.id) && n.visible !== false && (includeStep || n.type !== 'step'));
 }
 

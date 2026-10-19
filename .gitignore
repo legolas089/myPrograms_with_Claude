@@ -5,5 +5,8 @@ __pycache__/
 .claude/worktrees/
 
 # CAD Modeler: STEP models loaded by server path (large, not committed)
+# — 빌드 스크립트(.build.js)와 작업 기록(.md)은 소스라서 커밋한다
 cad_modeler/models/*
 !cad_modeler/models/README.md
+!cad_modeler/models/*.build.js
+!cad_modeler/models/*.md

@@ -12,13 +12,42 @@ export class History {
 
   apply(cmd) {
     cmd.do(this.state);
+    if (this._group) { this._group.push(cmd); return; }
     this.undoStack.push(cmd);
     if (this.undoStack.length > MAX_HISTORY) this.undoStack.shift();
     this.redoStack.length = 0;
     this.onChange();
   }
 
+  // fn 안의 변경을 Undo 한 단계로 묶고 화면 갱신(onChange)은 끝에 한 번만 한다. 중첩되면 바깥 묶음에 합쳐진다
+  async group(label, fn) {
+    if (this._group) return fn();
+    this._group = [];
+    try {
+      return await fn();
+    } finally {
+      const cmds = this._group;
+      this._group = null;
+      if (cmds.length) {
+        this.undoStack.push({
+          label,
+          do: s => { for (const c of cmds) c.do(s); },
+          undo: s => { for (let i = cmds.length - 1; i >= 0; i--) cmds[i].undo(s); },
+        });
+        if (this.undoStack.length > MAX_HISTORY) this.undoStack.shift();
+        this.redoStack.length = 0;
+      }
+      this.onChange();
+    }
+  }
+
   undo() {
+    if (this._group) { // 묶음 안에서의 Undo 는 묶음의 마지막 변경만 되돌린다
+      const cmd = this._group.pop();
+      if (!cmd) return false;
+      cmd.undo(this.state);
+      return true;
+    }
     const cmd = this.undoStack.pop();
     if (!cmd) return false;
     cmd.undo(this.state);
@@ -72,8 +101,11 @@ export function cmdAddNodes(nodes, label = 'Add nodes') {
 }
 
 // 여러 노드의 transform 을 한 번에 교체 (기즈모 커밋, API)
+// 직접 움직인 축에 파라미터 수식(node.expr)이 걸려 있으면 그 수식은 해제한다 — 남겨 두면
+// 다음 파라미터 변경 때 수식 값으로 되돌아가 버린다
 export function cmdSetTransforms(updates, label = 'Transform') {
   const prev = new Map();
+  const prevExpr = new Map();
   return {
     label,
     do(state) {
@@ -81,13 +113,29 @@ export function cmdSetTransforms(updates, label = 'Transform') {
         const n = state.nodes.find(x => x.id === u.id);
         if (!n) continue;
         prev.set(u.id, n.transform);
+        if (n.expr) {
+          const drop = [];
+          for (const path of Object.keys(n.expr)) {
+            const [head, i] = path.split('.');
+            if (head !== 'params' && n.transform[head]?.[+i] !== u.transform[head]?.[+i]) drop.push(path);
+          }
+          if (drop.length) {
+            prevExpr.set(u.id, n.expr);
+            const rest = { ...n.expr };
+            for (const p of drop) delete rest[p];
+            if (Object.keys(rest).length) n.expr = rest; else delete n.expr;
+            console.warn(`${n.name || n.id}: 직접 옮긴 값의 파라미터 수식을 해제했습니다 (${drop.map(p => `${p} = ${prevExpr.get(u.id)[p]}`).join(', ')})`);
+          }
+        }
         n.transform = u.transform;
       }
     },
     undo(state) {
       for (const [id, t] of prev) {
         const n = state.nodes.find(x => x.id === id);
-        if (n) n.transform = t;
+        if (!n) continue;
+        n.transform = t;
+        if (prevExpr.has(id)) n.expr = prevExpr.get(id);
       }
     },
   };
@@ -171,18 +219,37 @@ export function cmdReplaceState(newState) {
   return {
     label: 'Load',
     do(state) {
-      prev = { nodes: state.nodes, selection: state.selection, nextId: state.nextId };
+      prev = { nodes: state.nodes, selection: state.selection, nextId: state.nextId, params: state.params, sketches: state.sketches, rules: state.rules, specs: state.specs };
       // 매번 새 복사본 — 같은 배열을 쓰면 이후 추가된 노드가 Redo 때 되살아난다
       state.nodes = structuredClone(newState.nodes);
       state.selection = newState.selection || [];
       state.nextId = newState.nextId;
+      state.params = structuredClone(newState.params || {});
+      state.sketches = structuredClone(newState.sketches || {});
+      state.rules = structuredClone(newState.rules || []);
+      state.specs = structuredClone(newState.specs || []);
     },
     undo(state) {
-      if (prev) {
-        state.nodes = prev.nodes;
-        state.selection = prev.selection;
-        state.nextId = prev.nextId;
-      }
+      if (prev) Object.assign(state, prev);
+    },
+  };
+}
+
+// 파라미터·스케치·규칙 변경 (params.js). mutate 로 바꾼 뒤 수식을 다시 계산한다.
+// Undo 는 이전 파라미터로 되돌리고 다시 계산 — 노드 값은 수식에서 나오므로 따로 보관하지 않는다
+export function cmdParams(label, mutate, applyFormulas) {
+  const snap = s => structuredClone({ params: s.params || {}, sketches: s.sketches || {}, rules: s.rules || [], specs: s.specs || [] });
+  let before = null, after = null;
+  return {
+    label,
+    do(state) {
+      if (!before) { before = snap(state); mutate(state); after = snap(state); }
+      else Object.assign(state, structuredClone(after));
+      state.formulaErrors = applyFormulas(state).errors;
+    },
+    undo(state) {
+      Object.assign(state, structuredClone(before));
+      state.formulaErrors = applyFormulas(state).errors;
     },
   };
 }

@@ -1,7 +1,7 @@
 // 평가된 BufferGeometry 들을 씬에 반영하고 선택 하이라이트 관리
 import * as THREE from 'three';
 import { computeBoundsTree, disposeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
-import { evaluateNode, isBooleanNode, isStepNode } from './kernel.js';
+import { evaluateNode, isBooleanNode, isStepNode, nodeInputs, nodeKey as kernelKey } from './kernel.js';
 import { getPart } from './stepstore.js';
 
 // 큰 STEP 메쉬의 레이캐스트/거리계산을 BVH 로 가속
@@ -59,18 +59,8 @@ export function updateGhosts(state) {
 
 export function getGhostForNode(nodeId) { return ghostMap.get(nodeId); }
 
-// 노드(와 boolean 자식 트리)의 내용이 같으면 같은 키 → 메쉬 재사용
-function nodeKey(node, nodeMap) {
-  const { name, visible, _prevName, _prevT, _prevParams, ...rest } = node;
-  if (isBooleanNode(node)) {
-    const a = nodeMap.get(node.a), b = nodeMap.get(node.b);
-    return JSON.stringify([rest, a && nodeKey(a, nodeMap), b && nodeKey(b, nodeMap)]);
-  }
-  if (isStepNode(node)) {
-    return JSON.stringify([rest, !!getPart(node.source, node.mesh, node.merged)]);
-  }
-  return JSON.stringify(rest);
-}
+// 노드(와 입력 트리)의 내용이 같으면 같은 키 → 메쉬 재사용 (커널 평가 캐시와 같은 키)
+function nodeKey(node, nodeMap) { return kernelKey(node, nodeMap); }
 
 function disposeMesh(m) {
   meshGroup.remove(m);
@@ -86,12 +76,7 @@ export function rebuildScene(state) {
 
   // boolean에 의해 "소비된" 노드 ID 모음
   const consumed = new Set();
-  for (const n of state.nodes) {
-    if (isBooleanNode(n)) {
-      consumed.add(n.a);
-      consumed.add(n.b);
-    }
-  }
+  for (const n of state.nodes) for (const id of nodeInputs(n)) consumed.add(id);
 
   const keep = new Set();
   for (const node of state.nodes) {
@@ -121,7 +106,7 @@ export function rebuildScene(state) {
     if (triCount > 2000) geom.computeBoundsTree({ indirect: true });
 
     let color = NORMAL_COLOR;
-    if (isBooleanNode(node)) color = BOOL_COLOR;
+    if (isBooleanNode(node) || node.type === 'pattern') color = BOOL_COLOR;
     if (step) color = getPart(node.source, node.mesh, node.merged)?.color ?? STEP_COLOR;
     const mat = new THREE.MeshStandardMaterial({
       color,

@@ -393,3 +393,22 @@ body {
   color: #ffff66; font-size: 12px; font-weight: 600; pointer-events: none; white-space: nowrap;
 }
 canvas.measure-cursor { cursor: crosshair; }
+
+/* 형상 검사 경고 (health.js) */
+.tree-node .node-warn { font-size: 12px; margin-left: 4px; cursor: help; }
+.tree-node .node-warn.warn { color: #e5a050; }
+.tree-node .node-warn.error { color: #ff6b5e; }
+#transform-panel input.formula { color: #c586c0; font-style: italic; }
+
+/* 파라미터 패널 (params.js) */
+#params-panel { border-top: 1px solid #3c3c3c; max-height: 40%; overflow-y: auto; font-size: 12px; }
+#params-panel h3 { margin: 0; padding: 6px 12px; font-size: 11px; color: #aaa; text-transform: uppercase; letter-spacing: .5px; }
+#params-panel .pp-row { display: flex; align-items: center; gap: 6px; padding: 2px 12px; }
+#params-panel .pp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #ddd; }
+#params-panel .pp-row input { width: 72px; background: #1e1e1e; color: #ddd; border: 1px solid #3c3c3c; border-radius: 3px; padding: 2px 4px; }
+#params-panel .pp-unit { width: 24px; color: #888; font-size: 10px; }
+#params-panel .pp-empty { padding: 4px 12px 8px; color: #777; font-size: 11px; }
+#params-panel .pp-rule.bad { color: #ff6b5e; padding: 2px 12px; font-size: 11px; }
+#params-panel .pp-spec .pp-val { width: 72px; text-align: right; color: #ddd; font-variant-numeric: tabular-nums; }
+#params-panel .pp-spec.ok .pp-unit { color: #4ec9b0; }
+#params-panel .pp-spec.bad .pp-unit, #params-panel .pp-spec.bad .pp-name { color: #ff6b5e; }

@@ -3,7 +3,8 @@
 // 메쉬를 삼각형 하나 = 면 하나로 쓰면 STEP 리더(OCCT, SolidWorks 등)가 면마다 다시 메쉬를 만들어
 // 1만 개 남짓한 삼각형에도 수십 초씩 멈춘다. 그래서 쓰기 전에
 //   1) 같은 좌표의 정점을 합치고 (출력 자릿수 기준)
-//   2) T-접합(다른 삼각형의 꼭짓점이 변 중간에 놓인 곳)을 쪼개 이웃 삼각형끼리 변을 공유하게 만든 뒤
+//   2) T-접합(다른 삼각형의 꼭짓점이 변 중간에 놓인 곳)을 쪼개 이웃 삼각형끼리 변을 공유하게 만들고
+//      그래도 짝 없이 남은 변(Boolean 이 남긴 바늘 모양 틈)만 골라 한 번 더 쪼갠 뒤
 //   3) 같은 평면에서 이어진 삼각형들을 다각형 면 하나(구멍은 안쪽 경계)로 합친다.
 // 한 파트는 .stp (제품 하나), 여러 파트는 .step (각 파트가 이름 있는 구성품인 어셈블리)로 쓴다.
 
@@ -108,7 +109,9 @@ function repairTJunctions(P, T) {
             if (v === lo || v === hi || found.has(v)) continue;
             const AV = sub(P[v], A);
             const t = dot(AV, AB) / L2;
-            if (t * L <= TJ_TOL || (1 - t) * L <= TJ_TOL) continue;
+            // 병합된 정점끼리는 이미 Q 보다 멀다. 끝점 근처(변 방향 거리 ≤ TJ_TOL)라고 빼 버리면
+            // 끝점에서 1.1e-4 쯤 떨어진 정점이 병합도 분할도 안 돼 바늘 모양 구멍이 남는다
+            if (t <= 0 || t >= 1) continue;
             const perp = sub(AV, [AB[0] * t, AB[1] * t, AB[2] * t]);
             if (len(perp) < TJ_TOL) found.set(v, t);
           }
@@ -145,6 +148,62 @@ function repairTJunctions(P, T) {
     }
   }
   return { T: out, repaired };
+}
+
+// T-접합 보수 뒤에도 짝 없는 변(반대 방향 변이 모자란 변)이 남는 곳만 다시 본다.
+// 쪼개서 생긴 짧은 변 위에 또 걸친 정점이나 TJ_TOL 을 살짝 넘는 정점이 그런 틈을 만든다.
+// 짝 없는 변 위에 놓인 다른 경계 정점에서, 그 변을 가진 삼각형을 맞은편 꼭짓점 기준 부채꼴로 쪼갠다.
+// 후보를 짝 없는 변의 끝점으로만 한정하므로 허용치를 넉넉히 둬도 멀쩡한 곳은 건드리지 않는다
+const GAP_TOL = 1e-3;     // mm
+function closeGaps(P, T) {
+  let fixed = 0;
+  for (let pass = 0; pass < 8; pass++) {
+    const owners = new Map(); // "u_v" → 그 방향 변을 가진 삼각형들
+    T.forEach((tri, t) => {
+      for (let k = 0; k < 3; k++) {
+        const e = `${tri[k]}_${tri[(k + 1) % 3]}`;
+        if (!owners.has(e)) owners.set(e, []);
+        owners.get(e).push([t, k]);
+      }
+    });
+    const open = [];
+    for (const [e, list] of owners) {
+      const [u, v] = e.split('_').map(Number);
+      const excess = list.length - (owners.get(`${v}_${u}`)?.length || 0);
+      if (excess > 0) open.push({ u, v, list });
+    }
+    if (!open.length || open.length > 4000) break; // 많이 열려 있으면 미세 틈이 아니라 원래 열린 메쉬
+    const bverts = new Set(open.flatMap(o => [o.u, o.v]));
+    const split = new Map(); // 삼각형 → { k, list } (한 번에 변 하나만)
+    for (const { u, v, list } of open) {
+      const A = P[u], AB = sub(P[v], A), L2 = dot(AB, AB);
+      const found = [];
+      for (const w of bverts) {
+        if (w === u || w === v) continue;
+        const AW = sub(P[w], A), t = dot(AW, AB) / L2;
+        if (t <= 0 || t >= 1) continue;
+        if (len(sub(AW, [AB[0] * t, AB[1] * t, AB[2] * t])) <= GAP_TOL) found.push([w, t]);
+      }
+      if (!found.length) continue;
+      const own = list.find(([t]) => !split.has(t));
+      if (!own) continue;
+      split.set(own[0], { k: own[1], list: found.sort((x, y) => x[1] - y[1]).map(f => f[0]) });
+    }
+    if (!split.size) break;
+    const out = [];
+    T.forEach((tri, t) => {
+      const s = split.get(t);
+      if (!s) { out.push(tri); return; }
+      const u = tri[s.k], v = tri[(s.k + 1) % 3], w = tri[(s.k + 2) % 3];
+      const ring = [u, ...s.list, v];
+      for (let i = 0; i + 1 < ring.length; i++) {
+        if (triArea2(P[w], P[ring[i]], P[ring[i + 1]]) > 1e-12) out.push([w, ring[i], ring[i + 1]]);
+      }
+    });
+    T = out;
+    fixed += split.size;
+  }
+  return { T, fixed };
 }
 
 // ── 3. 동일 평면 삼각형 → 다각형 면 ──
@@ -320,17 +379,47 @@ function dedupe(T) {
   return out;
 }
 
+// CSG 가 남기는 부피 0 조각(서로 등을 맞댄 면 둘로 된 막)을 지운다 — 닫혀 있어도 솔리드가 아니고
+// 본체와 모서리를 공유하지 않아 STEP 에서 떨어진 면 묶음으로 남는다
+function dropSlivers(P, faces) {
+  const parent = faces.map((_, i) => i);
+  const find = i => { while (parent[i] !== i) { parent[i] = parent[parent[i]]; i = parent[i]; } return i; };
+  const owner = new Map();
+  faces.forEach((f, fi) => { for (const l of f.loops) for (let i = 0; i < l.length; i++) {
+    const a = l[i], b = l[(i + 1) % l.length], key = a < b ? `${a}_${b}` : `${b}_${a}`;
+    const o = owner.get(key);
+    if (o === undefined) owner.set(key, fi); else parent[find(o)] = find(fi);
+  } });
+  const vol = new Map();
+  let total = 0;
+  faces.forEach((f, fi) => {
+    let v = 0;
+    for (const l of f.loops) for (let i = 1; i < l.length - 1; i++) v += dot(P[l[0]], cross(P[l[i]], P[l[i + 1]])) / 6;
+    const r = find(fi);
+    vol.set(r, (vol.get(r) || 0) + v);
+    total += v;
+  });
+  if (vol.size < 2) return { faces, removed: 0 };
+  const eps = 1e-3 + 1e-7 * Math.abs(total);
+  let removed = 0;
+  for (const v of vol.values()) if (Math.abs(v) <= eps) removed++;
+  return { faces: faces.filter((_, fi) => Math.abs(vol.get(find(fi))) > eps), removed };
+}
+
 // 지오메트리 하나를 STEP 면 목록으로 정리
 export function meshToFaces(geom) {
   const { P, T } = weld(geom);
   const rep = repairTJunctions(P, dedupe(T));
-  const { faces, fallback } = mergeCoplanar(P, dedupe(rep.T));
+  const gap = closeGaps(P, dedupe(rep.T));
+  const merged = mergeCoplanar(P, dedupe(gap.T));
+  const sliver = dropSlivers(P, merged.faces);
+  const { faces } = sliver, { fallback } = merged;
   // 닫힌 솔리드인지: 모든 경계 변이 반대 방향으로 다른 면에서 한 번 더 쓰여야 한다
   const dir = new Set();
   for (const f of faces) for (const l of f.loops) for (let i = 0; i < l.length; i++) dir.add(`${l[i]}_${l[(i + 1) % l.length]}`);
   let closed = true;
   for (const e of dir) { const [a, b] = e.split('_'); if (!dir.has(`${b}_${a}`)) { closed = false; break; } }
-  return { points: P, faces, closed, stats: { triangles: T.length, repaired: rep.repaired, faces: faces.length, fallbackRegions: fallback, open: closed ? 0 : 1 } };
+  return { points: P, faces, closed, stats: { triangles: T.length, repaired: rep.repaired, gapsClosed: gap.fixed, slivers: sliver.removed, faces: faces.length, fallbackRegions: fallback, open: closed ? 0 : 1 } };
 }
 
 // ── 4. STEP 파일 쓰기 ──

@@ -1,6 +1,6 @@
 // 우측 Transform 패널: 선택된 노드의 위치/회전/스케일 + 파라미터 + 치수 표시
 import * as THREE from 'three';
-import { isBooleanNode, isPrimitiveNode, PRIMITIVE_FIELDS, evaluateNode } from './kernel.js';
+import { isBooleanNode, isPrimitiveNode, PRIMITIVE_FIELDS, PATTERN_FIELDS, evaluateNode } from './kernel.js';
 
 export class TransformPanel {
   constructor(elements, state, history, onChange) {
@@ -45,7 +45,14 @@ export class TransformPanel {
     this.el.px.value = t.pos[0]; this.el.py.value = t.pos[1]; this.el.pz.value = t.pos[2];
     this.el.rx.value = t.rot[0]; this.el.ry.value = t.rot[1]; this.el.rz.value = t.rot[2];
     this.el.sx.value = t.scale[0]; this.el.sy.value = t.scale[1]; this.el.sz.value = t.scale[2];
-    for (const k of all) this.el[k].disabled = false;
+    for (const k of all) { this.el[k].disabled = false; this.el[k].title = ''; this.el[k].classList.remove('formula'); }
+    // 파라미터 수식이 걸린 값은 여기서 고칠 수 없다 (파라미터를 바꾼다)
+    const axes = { pos: ['px', 'py', 'pz'], rot: ['rx', 'ry', 'rz'], scale: ['sx', 'sy', 'sz'] };
+    for (const [path, e] of Object.entries(node.expr || {})) {
+      const [head, i] = path.split('.');
+      const el = axes[head] && this.el[axes[head][+i]];
+      if (el) { el.disabled = true; el.title = `= ${e}  (파라미터 수식 — 파라미터 값을 바꾸세요)`; el.classList.add('formula'); }
+    }
     if (isBooleanNode(node)) {
       this.el.params.innerHTML = `<div style="font-size:11px;color:#888">자식: ${node.a}, ${node.b} (자식의 위치/크기는 자식을 직접 선택하여 편집)</div>`;
     } else {
@@ -57,7 +64,7 @@ export class TransformPanel {
   }
 
   _renderParams(node) {
-    const fields = PRIMITIVE_FIELDS[node.type];
+    const fields = PRIMITIVE_FIELDS[node.type] || (node.type === 'pattern' ? PATTERN_FIELDS : null);
     if (!fields) { this.el.params.innerHTML = ''; return; }
     const wrap = document.createElement('div');
     for (const f of fields) {
@@ -72,6 +79,8 @@ export class TransformPanel {
       inp.step = f.step;
       if (f.min !== undefined) inp.min = f.min;
       inp.value = node.params[f.key];
+      const formula = node.expr?.[`params.${f.key}`];
+      if (formula) { inp.disabled = true; inp.title = `= ${formula}  (파라미터 수식 — 파라미터 값을 바꾸세요)`; inp.classList.add('formula'); }
       inp.addEventListener('change', () => {
         let v = parseFloat(inp.value);
         if (f.integer) v = Math.round(v);

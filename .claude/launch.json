@@ -57,8 +57,8 @@
     },
     {
       "name": "cad_modeler_dev",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["http-server", "cad_modeler", "-p", "3017", "-c-1"],
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["cad_modeler/launcher.py", "--port", "3017", "--no-browser"],
       "port": 3017
     },
     {

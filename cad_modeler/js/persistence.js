@@ -6,6 +6,10 @@ export function serialize(state) {
     version: FORMAT_VERSION,
     nextId: state.nextId,
     nodes: state.nodes.map(n => ({ ...n })),
+    params: state.params || {},
+    sketches: state.sketches || {},
+    rules: state.rules || [],
+    specs: state.specs || [],
   }, null, 2);
 }
 
@@ -21,6 +25,10 @@ export function deserialize(json) {
     nodes: data.nodes,
     nextId: data.nextId ?? (Math.max(0, ...data.nodes.map(n => parseInt(String(n.id).replace(/\D/g,'')) || 0)) + 1),
     selection: [],
+    params: data.params || {},
+    sketches: data.sketches || {},
+    rules: data.rules || [],
+    specs: data.specs || [],
   };
 }
 

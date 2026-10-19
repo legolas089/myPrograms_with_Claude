@@ -1,13 +1,16 @@
 // 좌측 Outliner 트리: 노드 리스트 표시, 선택, 표시/숨김 토글
 // STEP 참조 파트는 원본 파일 단위로 접을 수 있는 그룹으로 묶어 보여준다.
-import { isBooleanNode, isStepNode } from './kernel.js';
+import { isBooleanNode, isStepNode, nodeInputs } from './kernel.js';
 import { hasSource } from './stepstore.js';
 
 const ICONS = {
   box: '□',
   cylinder: '○',
+  revolve: '◎',
+  pattern: '❋',
   sphere: '●',
   cone: '▲',
+  extrude: '⬒',
   boolean: '⋈',
   step: '⬡',
 };
@@ -30,9 +33,8 @@ export function renderOutliner(container, state, callbacks) {
   // boolean에 의해 소비된 자식 도형은 boolean 노드 아래에 자식 형태로 보여준다.
   const consumedBy = new Map(); // childId -> parentId
   for (const n of state.nodes) {
-    if (isBooleanNode(n)) {
-      consumedBy.set(n.a, n.id);
-      consumedBy.set(n.b, n.id);
+    if (nodeInputs(n).length) {
+      for (const id of nodeInputs(n)) consumedBy.set(id, n.id);
     }
   }
 
@@ -122,7 +124,19 @@ function renderNode(node, state, cb, consumedBy, depth) {
   name.className = 'node-name';
   name.textContent = node.name || `${node.type}_${node.id}`;
   if (isBooleanNode(node)) name.textContent += ` (${node.op})`;
+  if (node.type === 'pattern') name.textContent += ` (×${node.params?.count})`;
   row.appendChild(name);
+
+  // 형상 검사 결과 (health.js) — 오류는 빨강, 경고는 주황, 마우스를 올리면 내용
+  const report = cb.healthOf ? cb.healthOf(node) : null;
+  if (report && report.issues.length) {
+    const err = report.issues.some(i => i.level === 'error');
+    const warn = document.createElement('span');
+    warn.className = `node-warn ${err ? 'error' : 'warn'}`;
+    warn.textContent = '⚠';
+    warn.title = report.issues.map(i => `[${i.level === 'error' ? '오류' : '경고'}] ${i.message}`).join('\n');
+    row.appendChild(warn);
+  }
 
   const idTag = document.createElement('span');
   idTag.className = 'node-id';
@@ -150,8 +164,8 @@ function renderNode(node, state, cb, consumedBy, depth) {
   const wrap = document.createElement('div');
   wrap.appendChild(row);
 
-  if (isBooleanNode(node)) {
-    for (const childId of [node.a, node.b]) {
+  if (nodeInputs(node).length) {
+    for (const childId of nodeInputs(node)) {
       const child = state.nodes.find(n => n.id === childId);
       if (child) wrap.appendChild(renderNode(child, state, cb, consumedBy, depth + 1));
     }
