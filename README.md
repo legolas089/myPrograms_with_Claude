@@ -154,10 +154,10 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 - **측정 (M)**: 점/선/면 최단거리, 원형 모서리·원통면 지름과 축, 선택 2개 최소거리·간섭(겹친 체적)
 - **보기**: Iso/Top/Front/Right/Fit (0/7/1/3/F)
 - **저장과 이어서 작업**: 페이지는 열 때마다 **빈 장면**이다. 작업을 멈출 때 `cad_modeler/models/` 에 세 파일을 남긴다
-  - `<이름>.build.js` — 파라미터·스케치·규칙·형상·검증표를 만드는 빌드 스크립트 (`await cad.run('models/<이름>.build.js')` 로 다시 생성, git 에 커밋)
-  - `<이름>.stp` (단일 파트) / `.step` (어셈블리) — 결과 형상, 검사 문제가 있으면 저장 거부 (git 제외)
-  - `<이름>.md` — 작업 기록: 도면 해석, 파라미터 표, 검증 결과, 남은 일 (git 에 커밋)
-  - 예제: `models/propeller.build.js` (헬릭스 4엽 프로펠러), `models/strainer.build.js` (손잡이 달린 돔형 원판)
+  - `<이름>.build.js` — 파라미터·스케치·규칙·형상·검증표를 만드는 빌드 스크립트 (`await cad.run('models/<이름>.build.js')` 로 다시 생성)
+  - `<이름>.stp` (단일 파트) / `.step` (어셈블리) — 결과 형상, 검사 문제가 있으면 저장 거부
+  - `<이름>.md` — 작업 기록: 도면 해석, 파라미터 표, 검증 결과, 남은 일
+  - 세 파일 모두 git 에 올리지 않는다 (저장소에는 프로그램만). 예외로 예제 `models/propeller.build.js` (헬릭스 4엽 프로펠러), `models/strainer.build.js` (손잡이 달린 돔형 원판)와 그 작업 기록만 들어 있다
 - **JSON 저장/불러오기** (Ctrl+S/O): 노드 트리·파라미터·검증표 포함, **STL 내보내기**
 - **스크립트 API (`window.cad`)**: 모든 기능을 코드로 — `cad.help()` 로 목록. AI 에이전트 작업 규칙은 [`cad_modeler/AGENTS.md`](cad_modeler/AGENTS.md)
 
@@ -239,7 +239,7 @@ python generate_program.py --step all  # 또는 --step 1|2|3|4|6 개별 실행
 
 - Node.js 는 필요 없다 (`.claude/launch.json` 의 일부 개발용 미리보기 설정만 `npx http-server` 를 쓴다).
 - 포트: 통합 런처 3100, 각 프로그램 3000~3008 (쓰이고 있으면 다음 빈 포트), LaTeX OCR 서버 5000 · Article Printer 5001 · Quarter-Car 제어기 8000 (고정).
-- 저장소에 없는 것: `cad_modeler/models/` 의 STEP 파일(`.stp` · `.step`)은 커밋하지 않는다. 예제 모델은 빌드 스크립트로 다시 만든다.
+- 저장소에 없는 것: `cad_modeler/models/` 의 설계 결과물(빌드 스크립트·작업 기록·STEP)은 커밋하지 않는다. 예제(propeller, strainer)만 빌드 스크립트와 작업 기록으로 들어 있고, 모델은 빌드 스크립트로 다시 만든다.
 
 ## 실행 방법
 

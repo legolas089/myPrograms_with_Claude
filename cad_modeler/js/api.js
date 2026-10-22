@@ -187,10 +187,24 @@ function meshDistance(gA, gB) {
 }
 
 // 두 닫힌 메쉬의 교집합 체적 (mm³). 계산 실패(열린 메쉬 등) 시 null
+// 같은 평면에서 맞닿은 면(쌓은 판, 동축 구멍 등)이 있으면 CSG 가 면 안팎 판정을 틀려
+// 두 bbox 가 겹친 구간 밖의 면까지 결과에 섞고, 열린 결과의 체적이 0 이 아니게 나온다.
+// 그런 결과는 버리고 B 를 축마다 CSG_SHRINK 만큼 줄여(맞닿은 면을 떼어) 다시 계산한다.
 const csgEval = new Evaluator();
 csgEval.attributes = ['position'];
 csgEval.useGroups = false;
+const CSG_SHRINK = 0.001;   // mm — 겹친 면적 × 0.001 mm 만큼 체적이 작게 나온다 (실제 간섭 판정에는 영향 없음)
 function intersectionVolume(gA, gB) {
+  gA.computeBoundingBox(); gB.computeBoundingBox();
+  const overlap = gA.boundingBox.clone().intersect(gB.boundingBox);
+  if (overlap.isEmpty()) return 0;
+  const size = overlap.getSize(new THREE.Vector3());
+  if (Math.min(size.x, size.y, size.z) < 1e-6) return 0;   // bbox 가 면·모서리로만 닿음 → 체적 겹침 없음
+  const first = csgIntersectionVolume(gA, gB, overlap, 0);
+  return first !== undefined ? first : (csgIntersectionVolume(gA, gB, overlap, CSG_SHRINK) ?? null);
+}
+// → 체적 | undefined (결과가 bbox 겹침 구간을 벗어남 = 면 판정 실패) | null (예외)
+function csgIntersectionVolume(gA, gB, overlap, shrink) {
   try {
     const bare = g => {
       const x = new THREE.BufferGeometry();
@@ -199,8 +213,21 @@ function intersectionVolume(gA, gB) {
       return x;
     };
     const a = new Brush(bare(gA)), b = new Brush(bare(gB));
+    if (shrink) {
+      const c = gB.boundingBox.getCenter(new THREE.Vector3());
+      const h = gB.boundingBox.getSize(new THREE.Vector3()).multiplyScalar(0.5);
+      const s = new THREE.Vector3(...['x', 'y', 'z'].map(k => h[k] > 2 * shrink ? 1 - shrink / h[k] : 1));
+      b.scale.copy(s);
+      b.position.set(c.x * (1 - s.x), c.y * (1 - s.y), c.z * (1 - s.z));   // bbox 중심 기준 축소
+    }
     a.updateMatrixWorld(); b.updateMatrixWorld();
     const res = csgEval.evaluate(a, b, INTERSECTION);
+    res.geometry.computeBoundingBox();
+    const rb = res.geometry.boundingBox, tol = 1e-3;
+    if (!rb.isEmpty() && !overlap.clone().expandByScalar(tol).containsBox(rb)) {
+      res.geometry.dispose(); a.geometry.dispose(); b.geometry.dispose();
+      return undefined;
+    }
     const pos = res.geometry.attributes.position, idx = res.geometry.index;
     const n = idx ? idx.count / 3 : pos.count / 3;
     const p = new THREE.Vector3(), q = new THREE.Vector3(), w = new THREE.Vector3();
@@ -296,7 +323,11 @@ export function createApi(deps) {
         const ev = code => new Function('cad', 'p', ...names,
           `const {PI, abs, min, max, sqrt, sin, cos, tan, atan2, round, ceil, floor, hypot} = Math; const D = PI / 180; return (${code});`)(api, p, ...names.map(n => p[n]));
         row.expect = typeof sp.expect === 'string' ? ev(sp.expect.replace(/^\s*=/, '')) : sp.expect;
-        row.actual = ev(sp.measure);
+        // 단면·프로브가 아무것도 못 만나면 빈 배열의 max(−Infinity)나 undefined 접근 오류로 끝난다 — 흔한 원인은 측정 위치를 고정 좌표로 써 둔 채 부품을 옮긴 것
+        const MISS = '측정 위치에 대상이 없음 — 단면·프로브가 형상을 만나지 않았습니다. 부품을 옮겼다면 measure 의 좌표를 부품 bbox 기준으로 쓰세요';
+        try { row.actual = ev(sp.measure); }
+        catch (err) { throw err instanceof TypeError ? new Error(`${MISS} (${err.message})`) : err; }
+        if (row.actual === Infinity || row.actual === -Infinity || row.actual === undefined || row.actual === null) throw new Error(`${MISS} (값 ${row.actual})`);
         if (typeof row.actual !== 'number' || !Number.isFinite(row.actual)) throw new Error(`측정값이 숫자가 아님 (${row.actual})`);
         row.delta = Math.round((row.actual - row.expect) * 1e4) / 1e4;
         row.expect = Math.round(row.expect * 1e4) / 1e4;

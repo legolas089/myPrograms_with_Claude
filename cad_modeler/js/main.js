@@ -161,7 +161,7 @@ function renderParamsPanel() {
       row.title = r.error || `기대 ${r.expect} · 차이 ${r.delta} · 허용 ±${r.tol}${r.note ? ' · ' + r.note : ''}`;
       row.innerHTML = '<span class="pp-name"></span><span class="pp-val"></span><span class="pp-unit"></span>';
       row.children[0].textContent = r.name;
-      row.children[1].textContent = r.error ? '오류' : String(r.actual);
+      row.children[1].textContent = r.error ? (r.error.startsWith('측정 위치에 대상이 없음') ? '대상 없음' : '오류') : String(r.actual);
       row.children[2].textContent = r.ok ? '✓' : '✗';
       paramsEl.appendChild(row);
     }

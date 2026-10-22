@@ -4,9 +4,11 @@ __pycache__/
 .DS_Store
 .claude/worktrees/
 
-# CAD Modeler: STEP models loaded by server path (large, not committed)
-# — 빌드 스크립트(.build.js)와 작업 기록(.md)은 소스라서 커밋한다
+# CAD Modeler: 설계 결과물(빌드 스크립트·작업 기록·STEP)은 커밋하지 않는다 — 저장소에는 프로그램만
+# 예외: 폴더 안내(README)와 예제(propeller, strainer)
 cad_modeler/models/*
 !cad_modeler/models/README.md
-!cad_modeler/models/*.build.js
-!cad_modeler/models/*.md
+!cad_modeler/models/propeller.build.js
+!cad_modeler/models/propeller.md
+!cad_modeler/models/strainer.build.js
+!cad_modeler/models/strainer.md

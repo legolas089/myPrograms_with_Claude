@@ -101,6 +101,15 @@ cad.specs().table   // | 항목 | 기대 | 실측 | 차이 | 허용 | 판정 |
   - 수정 요청을 반영한 뒤에는 이 표를 사용자에게 그대로 보여 준다.
 - **검사와 저장**
     - **`measure`는 파라미터가 바뀌어도 같은 대상을 재야 한다.** 다른 부품이 섞일 수 있는 단면은 `cad.find`로 대상을 좁힌다. 높이·각도도 고정 숫자 대신 파라미터 식으로 쓴다(예: `z: hub_l / 2`).
+    - **측정 위치는 대상 부품의 bbox 기준으로 쓴다.** 사람이 화면에서 부품을 옮겨(분해도 등) 놓아도 같은 곳을 재야 한다. 조립 높이를 고정해 두면 단면이 빈 곳을 잘라 `대상 없음`이 된다.
+      ```js
+      const S = "cad.find('Spacer')";
+      // ✗ 조립 높이 고정: cad.section({ z: base_t + spacer_t / 2 }, S) — 스페이서를 옮기면 빈 곳을 자른다
+      // ✓ 부품 위치 기준: cad.section({ z: cad.bbox(...S).center[2] }, S)
+      cad.spec('스페이서 가운데 구멍 Φ', { expect: '=bore_d', tol: 0.05,
+        measure: `cad.section({ z: cad.bbox(...${S}).center[2] }, ${S}).loops.find(l => l.hole && l.circle?.d > 10).circle.d` });
+      ```
+      `cad.probe`도 같다. x·y는 `cad.bbox(...ids).center` 기준으로 잡고, 높이는 결과에서 `cad.bbox(...ids).min[2]`를 빼 부품 바닥 기준으로 비교한다.
 - `cad.check()`(인자 없음)와 `cad.saveStep`은 검증표 불일치를 오류(`spec`)로 다룬다.
   - 화면 왼쪽 아래 파라미터 패널 밑에 검증표가 표시된다. 상태 줄에는 `치수 7/7 ✓`처럼 나온다.
 
