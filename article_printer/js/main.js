@@ -65,6 +65,7 @@ async function checkHealth() {
     state.backendOk = true;
     el.status.textContent = j.chrome ? '백엔드 연결됨 · PDF 저장 가능' : '백엔드 연결됨 · Chrome/Edge 없음 → 브라우저 인쇄만 가능';
     el.status.className = 'status status-ok';
+    el.status.title = '';
     return true;
   } catch {
     state.backendOk = false;
@@ -77,17 +78,33 @@ async function ensureBackend() {
   el.status.textContent = '백엔드 시작 중…';
   el.status.className = 'status status-wait';
   // When embedded in the unified launcher (same origin), ask it to spawn server.py.
+  // The hub reports the backend's last stderr line if it dies on start.
+  let startError = null;
   try {
-    await fetch('/api/start-backend', {
+    const r = await fetch('/api/start-backend', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: 'article_printer' }),
     });
+    if (!r.ok) startError = await r.json().catch(() => null);
   } catch { /* standalone mode: nothing to ask */ }
+  if (startError?.error && startError.python) {
+    showStartError(startError);
+    return;
+  }
   for (let i = 0; i < 20; i++) {
     await new Promise(r => setTimeout(r, 700));
     if (await checkHealth()) return;
   }
   el.status.textContent = '백엔드 연결 안 됨 — "Article Printer.bat"를 실행하세요';
+  el.status.className = 'status status-bad';
+}
+
+function showStartError({ error, python, log }) {
+  const missing = /No module named '([^']+)'/.exec(error);
+  el.status.textContent = missing
+    ? `백엔드 시작 실패: '${missing[1]}' 패키지 없음 → "${python}" -m pip install flask flask-cors requests trafilatura readability-lxml`
+    : `백엔드 시작 실패: ${error}`;
+  el.status.title = `Python: ${python}\n로그: ${log}`;
   el.status.className = 'status status-bad';
 }
 

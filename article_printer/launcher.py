@@ -21,7 +21,21 @@ if sys.stdout is None:
 if sys.stderr is None:
     sys.stderr = open(os.devnull, "w", encoding="utf-8")
 
-import server  # noqa: E402
+try:
+    import server  # noqa: E402
+except ImportError as e:
+    # pythonw has no console, so on a PC without the packages the launcher
+    # would otherwise vanish silently. Say what is missing instead.
+    import ctypes
+    py = sys.executable
+    if py.lower().endswith("pythonw.exe"):
+        py = py[:-11] + "python.exe"
+    ctypes.windll.user32.MessageBoxW(
+        None,
+        f"{e}\n\n이 PC에 필요한 Python 패키지를 설치하세요:\n\n"
+        f"\"{py}\" -m pip install flask flask-cors requests trafilatura readability-lxml",
+        "Article Printer — 백엔드 시작 실패", 0x10)
+    sys.exit(1)
 
 
 def port_in_use(port: int) -> bool:

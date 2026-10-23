@@ -14,6 +14,7 @@ import os
 import sys
 import json
 import socket
+import tempfile
 import threading
 import webbrowser
 import subprocess
@@ -172,7 +173,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         The hub only serves static files, so programs that need a local API
         (e.g. Article Printer's fetch/PDF server) ask for it here when their
-        frontend cannot reach it. Fire-and-forget; the frontend polls health.
+        frontend cannot reach it. The frontend polls health; if the backend dies
+        right away (typically a missing pip package on a fresh PC) the tail of
+        its stderr is returned so the user sees why instead of a silent timeout.
         """
         prog = programs_by_id().get(body.get("id", ""))
         backend = (prog or {}).get("backend")
@@ -186,16 +189,35 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             pythonw = exe[:-10] + "pythonw.exe"
             if os.path.isfile(pythonw):
                 exe = pythonw
+        # stderr goes to a file, not a pipe: nobody reads a pipe once we return,
+        # and a full pipe would block the server's request logging.
+        log_path = Path(tempfile.gettempdir()) / f"myprograms_{prog['id']}_backend.log"
         try:
-            subprocess.Popen(
-                [exe, str(script)],
-                cwd=str(script.parent),
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            )
-            return self._send_json({"ok": True, "script": str(script)})
+            with open(log_path, "w", encoding="utf-8") as log:
+                proc = subprocess.Popen(
+                    [exe, str(script)],
+                    cwd=str(script.parent),
+                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=log,
+                )
         except OSError as e:
             return self._send_json({"error": str(e)}, status=500)
+        try:
+            code = proc.wait(timeout=2.5)
+        except subprocess.TimeoutExpired:
+            return self._send_json({"ok": True, "script": str(script)})
+        try:
+            lines = log_path.read_text(encoding="utf-8", errors="replace").strip().splitlines()
+        except OSError:
+            lines = []
+        python = sys.executable
+        if python.lower().endswith("pythonw.exe"):
+            python = python[:-11] + "python.exe"  # the one to run pip with
+        return self._send_json({
+            "error": lines[-1] if lines else f"backend exited with code {code}",
+            "python": python,
+            "log": str(log_path),
+        }, status=500)
 
     # ── helpers ──────────────────────────────────────────────────
     def _read_json(self):
