@@ -290,31 +290,26 @@ def _flag_tail_junk(blocks):
 
 
 def extract_with_trafilatura(text: str, url: str):
+    # Metadata comes from _metadata(), not with_metadata=True: trafilatura 2.0.0
+    # (the last release for Python < 3.10) puts list fields such as tags into
+    # <meta content=...> unjoined and lxml raises "got 'list'".
     out = trafilatura.extract(
         text, url=url, output_format="html",
         include_images=True, include_tables=True, include_links=False,
-        include_formatting=True, with_metadata=True,
+        include_formatting=True,
     )
     if not out:
         return None
     root = parse_html(out)
-    meta = {}
-    for m in root.xpath("//meta[@name]"):
-        meta[m.get("name")] = m.get("content") or ""
     body = root.find("body")
     if body is None:
         return None
     blocks = _body_to_blocks(body, url)
     if not any(b["type"] != "image" for b in blocks):
         return None
-    return {
-        "title": meta.get("title") or "",
-        "author": meta.get("author") or "",
-        "date": meta.get("date") or "",
-        "sitename": meta.get("sitename") or host_of(url),
-        "blocks": blocks,
-        "engine": "trafilatura",
-    }
+    result = _metadata(text, url)
+    result.update({"blocks": blocks, "engine": "trafilatura"})
+    return result
 
 
 def extract_with_readability(text: str, url: str):
