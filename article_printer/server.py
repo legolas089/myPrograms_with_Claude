@@ -15,6 +15,9 @@ API
     POST /api/open {path}       -> opens a file inside Downloads
 """
 
+# Lazy annotations so `tuple[str, str]` etc. also run on Python 3.8.
+from __future__ import annotations
+
 import os
 import re
 import sys
