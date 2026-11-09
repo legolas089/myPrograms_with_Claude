@@ -16,7 +16,7 @@ from scipy import stats
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from analysis import (  # noqa: E402
-    density, descriptive, fitting, loaders, normality, risk, spectral, synth, timeseries,
+    density, descriptive, fitting, loaders, normality, risk, spectral, sweep, synth, timeseries,
 )
 
 FAILS: list[str] = []
@@ -277,6 +277,35 @@ def test_spectral():
     print(f"  {'ok ' if sp['db'].shape == (sp['f'].size, sp['t'].size) else 'FAIL'} spectrogram shape {sp['db'].shape}")
 
 
+def test_sweep():
+    print("seed x N sweep")
+    rng = np.random.default_rng(31)
+    z = np.sort(rng.standard_normal(500))
+    close("KS distance vs scipy (continuous)", sweep.ks_distance(z, stats.norm(), False), stats.kstest(z, "norm").statistic)
+    k = np.sort(stats.poisson(3).rvs(2000, random_state=rng).astype(float))
+    grid = np.arange(-1, 30)
+    fn = np.searchsorted(k, grid, side="right") / k.size
+    brute = np.max(np.abs(fn - stats.poisson(3).cdf(grid)))
+    close("KS distance discrete == brute force on the integers", sweep.ks_distance(k, stats.poisson(3), True), brute)
+    ns = [100, 300, 1000, 3000, 10000, 30000]
+    r = sweep.run("normal", {"mu": 1, "sigma": 2}, ns, 30, 5)
+    st = {s["key"]: s for s in r["stats"]}
+    for key in ("mean", "std", "var_r95", "cvar_l95", "ks"):
+        close(f"normal {key}: slope ≈ -0.5", st[key]["slope"], -0.5, atol=0.12)
+    close("normal mean RMSE ≈ σ/√N", st["mean"]["rmse"], 2 / np.sqrt(ns), rtol=0.35)
+    a = sweep.run("normal", {}, [100, 1000], 3, 7)["stats"][0]["paths"]
+    b = sweep.run("normal", {}, [100, 1000], 3, 7)["stats"][0]["paths"]
+    c, _ = synth.generate("normal", {}, 1000, 8)
+    close("same seeds -> same paths", a, b)
+    close("seed s path uses default_rng(base+s) prefix", a[1, 0], c[:100].mean())
+    st = {s["key"]: s for s in sweep.run("cauchy", {}, ns, 30, 5)["stats"]}
+    ok = st["mean"]["error_kind"] == "iqr" and st["mean"]["verdict"] == "수렴하지 않음" and st["median"]["slope"] < -0.4
+    print(f"  {'ok ' if ok else 'FAIL'} cauchy: mean does not converge (slope {st['mean']['slope']:.2f}), "
+          f"median does ({st['median']['slope']:.2f})")
+    if not ok:
+        FAILS.append("cauchy sweep")
+
+
 if __name__ == "__main__":
     test_descriptive()
     test_kde()
@@ -286,5 +315,6 @@ if __name__ == "__main__":
     test_fit()
     test_timeseries()
     test_spectral()
+    test_sweep()
     print("\nALL PASSED" if not FAILS else f"\nFAILED: {FAILS}")
     sys.exit(1 if FAILS else 0)

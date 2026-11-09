@@ -106,7 +106,7 @@ button { font: inherit; }
 .empty { color: var(--muted); padding: 60px; text-align: center; border: 1px dashed #3a3a3a; border-radius: 12px; }
 .error { background: #4d1f1f; color: var(--bad); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; white-space: pre-wrap; }
 
-.pane { display: flex; flex-direction: column; gap: 14px; }
+.pane, .stack { display: flex; flex-direction: column; gap: 14px; }
 .loading { color: #f0d070; background: #4a3f12; border-radius: 8px; padding: 8px 14px; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
@@ -129,6 +129,11 @@ input[type=checkbox] { accent-color: var(--accent); }
 .plot-series { height: 260px; }
 .plot-tall { height: 440px; }
 .plot-mid { height: 300px; }
+.sweep-form { display: grid; grid-template-columns: 1.4fr 2fr 0.8fr 0.8fr auto; gap: 10px; align-items: end; margin-top: 10px; }
+.sweep-dist { color: var(--text); padding: 6px 0; }
+#sweep-table tbody tr { cursor: pointer; }
+#sweep-table tbody tr:hover td { background: rgba(255, 255, 255, 0.03); }
+@media (max-width: 760px) { .sweep-form { grid-template-columns: 1fr 1fr; } }
 .controls input.num { width: 80px; padding: 3px 6px; }
 #fs-field .row select { width: 120px; }
 .cols-even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }

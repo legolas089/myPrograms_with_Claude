@@ -105,7 +105,7 @@
           <button class="tab" data-tab="fit">분포 적합·검정</button>
           <button class="tab" data-tab="ts">시계열</button>
           <button class="tab" data-tab="spec">주파수</button>
-          <button class="tab" disabled title="4단계">Seed / N 테스트</button>
+          <button class="tab" data-tab="sweep">Seed / N 테스트</button>
         </nav>
 
         <div id="empty" class="empty">왼쪽에서 데이터를 생성하거나 불러오세요.</div>
@@ -335,6 +335,58 @@
           <div class="card">
             <h2>스펙트로그램 (STFT) <span class="hint">시간에 따라 주파수 성분이 바뀌는지</span></h2>
             <div id="plot-stft" class="plot plot-tall"></div>
+          </div>
+        </section>
+
+        <!-- ── Seed × N sweep ── -->
+        <section id="tab-sweep" class="pane hidden">
+          <div class="card">
+            <h2>Seed × N 수렴 테스트 <span class="hint">추정값이 N 을 키울수록 참값에 얼마나 빨리 다가가는지</span></h2>
+            <p class="note">왼쪽 "합성 데이터"에서 고른 분포·파라미터를 씁니다 (시계열 성분은 쓰지 않음).
+              seed 마다 최대 N 개를 한 번 뽑고, 각 N 은 그 앞쪽 N 개를 씁니다 — 그래서 seed 하나가 N 을 따라가는 경로 하나가 됩니다.</p>
+            <div class="sweep-form">
+              <div class="field"><span>분포</span><div id="sweep-dist" class="sweep-dist">—</div></div>
+              <label class="field"><span>N 목록 (쉼표 구분)</span>
+                <input id="sweep-ns" type="text" value="100, 300, 1000, 3000, 10000, 30000, 100000"></label>
+              <label class="field"><span>seed 개수</span><input id="sweep-seeds" type="number" min="2" max="100" value="30"></label>
+              <label class="field"><span>시작 seed</span><input id="sweep-base" type="number" min="0" value="1"></label>
+              <button id="sweep-run" class="btn-primary">스윕 실행</button>
+            </div>
+            <p id="sweep-work" class="hint"></p>
+          </div>
+          <div class="loading hidden" data-loading>스윕 계산 중… (seed × 최대 N 이 크면 몇 초 걸립니다)</div>
+          <div id="sweep-empty" class="empty">분포를 고르고 <b>스윕 실행</b>을 누르세요.</div>
+
+          <div id="sweep-results" class="stack hidden">
+            <div class="card">
+              <h2>통계량별 수렴 요약</h2>
+              <table class="stats" id="sweep-table"></table>
+              <p class="note">오차 = seed 간 RMSE(참값이 있을 때) 또는 IQR(참값이 정의되지 않을 때). 수렴 기울기 = log(오차) 대 log(N) 의 기울기:
+                −0.5 이면 표준적인 1/√N, 0 근처면 N 을 늘려도 좋아지지 않습니다. 행을 누르면 아래 그래프가 그 통계량으로 바뀝니다.</p>
+              <p id="sweep-note" class="note warn hidden"></p>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2 id="sweep-title">추정값 경로</h2>
+                <div class="controls">
+                  <label>통계량 <select id="sweep-stat"></select></label>
+                  <label class="check"><input id="sweep-paths" type="checkbox" checked> seed 별 경로</label>
+                </div>
+              </div>
+              <div id="plot-sweep" class="plot plot-tall"></div>
+            </div>
+
+            <div class="cols cols-even">
+              <div class="card">
+                <h2>오차 대 N (log–log)</h2>
+                <div id="plot-sweep-err" class="plot plot-mid"></div>
+              </div>
+              <div class="card">
+                <h2>N 별 상세</h2>
+                <table class="stats" id="sweep-detail"></table>
+              </div>
+            </div>
           </div>
         </section>
 

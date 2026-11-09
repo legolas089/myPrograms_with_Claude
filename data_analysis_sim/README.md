@@ -22,6 +22,7 @@ data_analysis_sim/
 │   ├── normality.py     정규성 검정 7종
 │   ├── timeseries.py    이동 통계, 추세, 구간 통계, ACF/PACF·Ljung–Box, 런 검정, ADF/KPSS, DFA
 │   ├── spectral.py      FFT 진폭 스펙트럼·봉우리, Welch PSD, 스펙트럼 지표, 스펙트로그램
+│   ├── sweep.py         seed × N 수렴 테스트
 │   ├── loaders.py       붙여넣기·CSV·TSV·TXT·XLSX 파싱
 │   └── jsonsafe.py      NaN/∞ 를 JSON 으로 안전하게
 ├── tests/test_analysis.py   SciPy·pandas 기준값과 대조 (python 으로 바로 실행)
@@ -71,6 +72,15 @@ data_analysis_sim/
 - **스펙트로그램** — STFT(창 길이 선택), dB 히트맵
 - 주파수 단위: 합성 데이터는 생성할 때의 fs [Hz]. 업로드 데이터는 "현재 데이터" 카드에서 fs 를 입력하거나 시간 열을 고르면 간격의 중앙값으로 정한다 (간격이 1% 넘게 들쭉날쭉하면 경고). 모르면 cycles/sample
 
+### Seed / N 테스트 탭 (4단계)
+데이터가 없어도 "이 분포에서 N 개면 추정값이 얼마나 믿을 만한가"를 본다. 왼쪽 합성 데이터 설정의 분포·파라미터를 쓴다.
+- seed 마다 최대 N 개를 `default_rng(시작 seed + s)` 로 한 번 뽑고, 각 N 은 그 앞쪽 N 개를 쓴다 → seed 하나가 N 을 따라가는 경로 하나
+- 통계량 10개: 평균, 표준편차, 왜도, 초과첨도, 중앙값, 양쪽 VaR·CVaR 95%, KS 거리 sup|Fₙ − F|
+- 통계량마다 참값, 최소·최대 N 의 오차, **수렴 기울기**(log 오차 대 log N)와 판정: −0.5 근처면 1/√N 수렴, −0.15 ~ −0.4 면 느린 수렴(두꺼운 꼬리), 0 근처면 수렴하지 않음
+  - 오차 = seed 간 RMSE. 참값이 정의되지 않거나 무한대면(코시 평균, t 분포 ν≤4 첨도 등) seed 간 IQR
+- 그래프: seed 별 경로 + seed 간 5~95%·25~75% 띠 + 중앙값 + 참값, 오차 대 N (log–log, 1/√N 기준선), N 별 편향·표준편차·RMSE 표
+- 한도: N ≤ 1,000,000, seed ≤ 100, seed × 최대 N ≤ 20,000,000
+
 ## 통계 관례
 
 | 값 | 정의 | 일치 대상 |
@@ -93,7 +103,6 @@ python data_analysis_sim/tests/test_analysis.py
 
 ## 다음 단계
 
-4. Seed × N 스윕 — 추정값의 이론값 수렴 (1/√N 기준선, seed 간 퍼짐)
 5. 결과 내보내기(CSV/JSON)
 
 ## 필요 패키지

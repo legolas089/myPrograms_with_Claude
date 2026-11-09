@@ -3,6 +3,7 @@ import { diff, fmt, fmtInt, fmtTheory, isNum } from './format.js';
 import { renderFit, wireFit } from './fit.js';
 import { drawBox, drawDensity, drawSeries, resizeAll } from './plots.js';
 import { renderDrawdown, renderRisk } from './risk.js';
+import { parseNs, renderSweep, wireSweep } from './sweep.js';
 import {
   redrawFft, redrawTsMain, renderSpec, renderTs, specParams, tsParams,
 } from './ts.js';
@@ -257,13 +258,54 @@ async function analyze() {
   await showTab(state.tab);
 }
 
+// ── seed × N sweep ──────────────────────────────────────────────────
+const SWEEP_MAX_WORK = 20_000_000;
+
+function updateSweepForm() {
+  const d = currentDist();
+  if (!d) return;
+  const params = readParams();
+  const labels = Object.fromEntries(d.params.map((p) => [p.key, p.label.split(' ')[0]]));
+  $('sweep-dist').textContent = `${d.label} (${Object.entries(params).map(([k, v]) => `${labels[k]}=${fmt(v)}`).join(', ')})`;
+  const ns = parseNs($('sweep-ns').value);
+  const seeds = Number($('sweep-seeds').value) || 0;
+  const work = ns.length ? seeds * ns[ns.length - 1] : 0;
+  const w = $('sweep-work');
+  w.textContent = ns.length
+    ? `N ${ns.length}단계 (${fmtInt(ns[0])} ~ ${fmtInt(ns[ns.length - 1])}) × seed ${seeds}개 — 샘플 ${fmtInt(work)}개 생성`
+      + (work > SWEEP_MAX_WORK ? ` · 한도 ${fmtInt(SWEEP_MAX_WORK)}개를 넘습니다` : '')
+    : 'N 목록을 입력하세요';
+  w.style.color = work > SWEEP_MAX_WORK ? 'var(--bad)' : '';
+}
+
+async function runSweep() {
+  const loading = $('tab-sweep').querySelector('[data-loading]');
+  loading.classList.remove('hidden');
+  try {
+    const res = await call('/api/sweep', {
+      json: {
+        dist: el.distSelect.value, params: readParams(), ns: parseNs($('sweep-ns').value),
+        seeds: Number($('sweep-seeds').value), base_seed: Number($('sweep-base').value),
+      },
+    });
+    saveSettings();
+    renderSweep(res);
+  } finally {
+    loading.classList.add('hidden');
+  }
+}
+
 // ── tabs ────────────────────────────────────────────────────────────
 async function showTab(name) {
   state.tab = name;
   document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('active', b.dataset.tab === name));
-  if (!state.result) return;
-  document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('hidden', p.id !== `tab-${name}`));
+  // The sweep tab generates its own data, so it works before any dataset exists.
+  const visible = name === 'sweep' || !!state.result;
+  el.empty.classList.toggle('hidden', visible);
+  document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('hidden', !visible || p.id !== `tab-${name}`));
+  if (!visible) return;
   const pane = $(`tab-${name}`);
+  if (name === 'sweep') updateSweepForm();
   const tab = TABS[name];
   if (tab) {
     const extra = tab.params ? tab.params() : {};
@@ -459,6 +501,10 @@ function wire() {
   }
   $('spec-log').addEventListener('change', () => state.tabData.spec && redrawFft(state.tabData.spec));
   $('fs-apply').addEventListener('click', () => busy(el.gen, applyFs));
+  wireSweep(() => busy($('sweep-run'), runSweep));
+  for (const id of ['sweep-ns', 'sweep-seeds']) $(id).addEventListener('input', updateSweepForm);
+  el.distSelect.addEventListener('change', updateSweepForm);
+  el.params.addEventListener('input', updateSweepForm);
   $('fs-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') busy(el.gen, applyFs); });
 }
 

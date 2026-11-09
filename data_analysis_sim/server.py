@@ -17,6 +17,7 @@ API
     POST /api/timeseries {dataset_id, column, window, lags, segments} -> rolling, trend, ACF/PACF, ADF/KPSS, DFA
     POST /api/spectral   {dataset_id, column, nperseg, detrend, spec_nperseg} -> FFT, peaks, Welch PSD, STFT
     POST /api/set_fs     {dataset_id, fs | time_column}  -> sampling rate of an uploaded dataset
+    POST /api/sweep      {dist, params, ns, seeds, base_seed} -> seed × N convergence of estimates
 """
 
 from __future__ import annotations
@@ -37,7 +38,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from analysis import (  # noqa: E402
-    density, descriptive, fitting, loaders, normality, risk, spectral, synth, timeseries,
+    density, descriptive, fitting, loaders, normality, risk, spectral, sweep, synth, timeseries,
 )
 from analysis.jsonsafe import clean  # noqa: E402
 
@@ -319,6 +320,14 @@ def set_fs():
     meta["fs"] = fs
     ds["cache"].clear()  # risk/time/frequency results depend on fs
     return jsonify(clean({"meta": meta}))
+
+
+@app.route("/api/sweep", methods=["POST"])
+def sweep_route():
+    b = request.get_json(force=True) or {}
+    res = sweep.run(b.get("dist", "normal"), b.get("params") or {}, b.get("ns") or [],
+                    b.get("seeds", 20), b.get("base_seed", 0))
+    return jsonify(clean(res))
 
 
 def run(open_browser: bool = False):

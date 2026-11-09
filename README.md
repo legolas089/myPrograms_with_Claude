@@ -187,7 +187,7 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 **의존성**: `pip install flask flask-cors requests trafilatura readability-lxml`
 
 ### 11. Data Analysis Sim (`data_analysis_sim/`)
-데이터 분포를 넣으면 KDE·모멘트·분위수·꼬리 위험·분포 적합·시계열·주파수 등 의미 있는 값을 뽑는 분석 시뮬레이터 (3단계까지 — 개요 · 리스크 · 분포 적합 · 시계열 · 주파수 탭)
+데이터 분포를 넣으면 KDE·모멘트·분위수·꼬리 위험·분포 적합·시계열·주파수 등 의미 있는 값을 뽑는 분석 시뮬레이터 (개요 · 리스크 · 분포 적합 · 시계열 · 주파수 · Seed/N 테스트 탭)
 
 - 입력: 파일 끌어놓기(CSV·TSV·TXT·XLSX)·붙여넣기, 또는 합성 데이터 15종(정규·로그정규·감마·코시·파레토·정규혼합·포아송 등)을 **분포·파라미터·seed·N** 으로 생성
 - 합성 데이터에 시계열 성분(추세, AR(1), 랜덤워크, 사인 3개) 추가 가능
@@ -197,8 +197,9 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 - 분포 적합·검정: 정규성 검정 7종, 연속 13종·이산 4종 MLE 적합의 AIC/BIC 순위, Q-Q 그림, ECDF vs 적합 CDF
 - 시계열: 이동평균·추세, ACF/PACF, Ljung–Box·런 검정, ADF·KPSS 정상성, 구간별 통계, DFA(Hurst)
 - 주파수: FFT 진폭 스펙트럼과 주요 주파수(빈 사이 보간), Welch PSD, 스펙트럼 지표, 스펙트로그램 — 업로드 데이터는 fs 입력 또는 시간 열 지정
+- Seed / N 테스트: seed 여러 개 × N 여러 단계로 10개 통계량의 참값 수렴을 비교 — seed 별 경로, 퍼짐 띠, 수렴 기울기(1/√N 이면 −0.5, 코시 평균처럼 수렴하지 않으면 0)
 - 계산은 Python 백엔드(`server.py`, 포트 5002, NumPy·SciPy) — 데이터는 서버에 한 번만 올리고 결과만 받는다. 통합 런처에서 열면 자동으로 띄움
-- 다음 단계: seed × N 수렴 테스트, 결과 내보내기
+- 다음 단계: 결과 내보내기(CSV/JSON)
 
 **실행**: `Data Analysis Sim.bat` 더블클릭 (http://localhost:5002 — 고정 포트) · 상세: [`data_analysis_sim/README.md`](data_analysis_sim/README.md)
 
