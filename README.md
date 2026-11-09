@@ -5,7 +5,7 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 각 프로그램은 별도의 하위 폴더로 관리됩니다. `.bat` 파일을 더블클릭하면 터미널 창 없이 브라우저에서 바로 실행됩니다.
 
 - 서버는 창 없이(`pythonw`, exe 는 `console=False`) 백그라운드에서 돈다. **종료**는 작업 관리자에서 `pythonw.exe`(또는 해당 `.exe`)를 끝낸다.
-- 기본 포트가 사용 중이면 다음 빈 포트(+1)로 자동 이동한다. 백엔드 포트(LaTeX OCR 5000 · Article Printer 5001 · Quarter-Car 제어기 8000)는 고정.
+- 기본 포트가 사용 중이면 다음 빈 포트(+1)로 자동 이동한다. 백엔드 포트(LaTeX OCR 5000 · Article Printer 5001 · Data Analysis Sim 5002 · Quarter-Car 제어기 8000)는 고정.
 - 필요한 것은 아래 [사전 요구사항](#사전-요구사항) 참고.
 
 ---
@@ -14,11 +14,11 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 
 모든 프로그램을 한 화면에서 실행·관리하는 통합 UI.
 
-- **왼쪽 패널**: 프로그램을 카테고리별로 나열 (Vehicle Dynamics / Robotics / 3D·CAD / Editors), 그리고 localhost를 쓰지 않는 CLI 프로그램은 하단 `Standalone / CLI` 섹션으로 분리
+- **왼쪽 패널**: 프로그램을 카테고리별로 나열 (Vehicle Dynamics / Robotics / 3D·CAD / Editors / Data·Analysis), 그리고 localhost를 쓰지 않는 CLI 프로그램은 하단 `Standalone / CLI` 섹션으로 분리
 - **가운데 패널**: 클릭한 프로그램이 Chrome 스타일 탭으로 열림 — 여러 개를 동시에 실행하고 탭을 전환해도 각 프로그램의 상태가 유지됨
 - **오른쪽 Downloads 패널**: 상단 Downloads 버튼으로 토글, 다운로드 폴더의 최근 파일을 클릭하면 기본 앱으로 열기 / `Open folder`로 폴더 열기
 - 통합 런처 서버 하나(포트 3100)가 저장소 전체를 단일 origin으로 서빙하여 각 웹 프로그램을 iframe으로 임베드 — 프로그램마다 서버를 따로 띄우지 않음
-  - 단, 백엔드가 필요한 프로그램 중 **Article Printer 백엔드만** 열 때 자동으로 띄운다 (런처를 닫아도 계속 실행됨). LaTeX OCR(5000)·Quarter-Car Python 제어기(8000)는 런처에서 열면 자동 실행되지 않으므로 각 `.bat` 으로 실행
+  - 단, 백엔드가 필요한 프로그램 중 **Article Printer·Data Analysis Sim 백엔드만** 열 때 자동으로 띄운다 (런처를 닫아도 계속 실행됨). LaTeX OCR(5000)·Quarter-Car Python 제어기(8000)는 런처에서 열면 자동 실행되지 않으므로 각 `.bat` 으로 실행
 - CLI 전용인 Conference Program Book은 클릭 시 저장소 루트에서 명령어를 바로 실행하는 터미널 창을 연다
 - 프로그램 추가: `launcher/programs.json` 에 항목 하나 추가 (코드 수정 불필요)
 
@@ -186,7 +186,25 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
 **의존성**: `pip install flask flask-cors requests trafilatura readability-lxml`
 
-### 11. Conference Program Book (`conference_programbook/`)
+### 11. Data Analysis Sim (`data_analysis_sim/`)
+데이터 분포를 넣으면 KDE·모멘트·분위수·꼬리 위험·분포 적합·시계열·주파수 등 의미 있는 값을 뽑는 분석 시뮬레이터 (3단계까지 — 개요 · 리스크 · 분포 적합 · 시계열 · 주파수 탭)
+
+- 입력: 파일 끌어놓기(CSV·TSV·TXT·XLSX)·붙여넣기, 또는 합성 데이터 15종(정규·로그정규·감마·코시·파레토·정규혼합·포아송 등)을 **분포·파라미터·seed·N** 으로 생성
+- 합성 데이터에 시계열 성분(추세, AR(1), 랜덤워크, 사인 3개) 추가 가능
+- 통계량: 평균·95% CI·중앙값·최빈값, 분산·IQR·MAD·CV, 왜도·초과첨도(± 표준오차), 1~4차 모멘트, 1~99% 분위수 — 합성 데이터면 이론값·차이를 나란히 표시
+- 히스토그램 + KDE(Silverman/Scott, 배율 슬라이더) + 참 PDF/PMF, 박스플롯, 샘플 순서 시계열
+- 리스크·꼬리: 90~99.5% VaR·CVaR(양쪽 꼬리, 이론값 비교), Hill 꼬리지수, 이상치 4규칙, 최대 낙폭(MDD)
+- 분포 적합·검정: 정규성 검정 7종, 연속 13종·이산 4종 MLE 적합의 AIC/BIC 순위, Q-Q 그림, ECDF vs 적합 CDF
+- 시계열: 이동평균·추세, ACF/PACF, Ljung–Box·런 검정, ADF·KPSS 정상성, 구간별 통계, DFA(Hurst)
+- 주파수: FFT 진폭 스펙트럼과 주요 주파수(빈 사이 보간), Welch PSD, 스펙트럼 지표, 스펙트로그램 — 업로드 데이터는 fs 입력 또는 시간 열 지정
+- 계산은 Python 백엔드(`server.py`, 포트 5002, NumPy·SciPy) — 데이터는 서버에 한 번만 올리고 결과만 받는다. 통합 런처에서 열면 자동으로 띄움
+- 다음 단계: seed × N 수렴 테스트, 결과 내보내기
+
+**실행**: `Data Analysis Sim.bat` 더블클릭 (http://localhost:5002 — 고정 포트) · 상세: [`data_analysis_sim/README.md`](data_analysis_sim/README.md)
+
+**의존성**: `pip install flask flask-cors numpy scipy pandas openpyxl statsmodels`
+
+### 12. Conference Program Book (`conference_programbook/`)
 학회 제출 엑셀을 프로그램북 작업 파일로 자동 변환·검증하는 Python CLI 파이프라인
 
 - `input_raw.xlsx` (학회 submission 원본) → `program_book_working.xlsx` (다중 시트 통합 작업본)
@@ -218,7 +236,7 @@ python generate_program.py --step all  # 또는 --step 1|2|3|4|6 개별 실행
 | **Windows** | `.bat` 실행 | `.bat` 은 `pythonw` 로 서버를 띄운다. 다른 OS 에서는 `python <폴더>/launcher.py` (또는 `server.py`) 를 직접 실행 |
 | **[Python 3](https://www.python.org)** (`python` · `pythonw` 가 PATH 에 있어야 함) | 통합 런처와 모든 웹 프로그램 | 서버는 표준 라이브러리만 사용 |
 | **Chrome / Edge 등 최신 브라우저** | 모든 웹 프로그램 | WebGL · WebAssembly · ES 모듈 사용 |
-| **인터넷 연결** | STEP Viewer, PDF Editor, LaTeX Renderer, CAD Modeler, 3D Robot Arm, 통합 런처(아이콘) | 아래 표의 브라우저 라이브러리를 CDN(unpkg · esm.sh · jsdelivr)에서 받는다 |
+| **인터넷 연결** | STEP Viewer, PDF Editor, LaTeX Renderer, CAD Modeler, 3D Robot Arm, Data Analysis Sim, 통합 런처(아이콘) | 아래 표의 브라우저 라이브러리를 CDN(unpkg · esm.sh · jsdelivr)에서 받는다 |
 
 프로그램별로 쓰는 라이브러리:
 
@@ -233,12 +251,13 @@ python generate_program.py --step all  # 또는 --step 1|2|3|4|6 개별 실행
 | LaTeX Renderer | OCR 사용 시 `pix2tex flask flask-cors pillow` (pix2tex 가 PyTorch 를 함께 설치 — 용량 큼) | KaTeX 0.16.11, html2canvas 1.4.1 |
 | CAD Modeler | — | three.js 0.175.0, three-mesh-bvh 0.7.8, three-bvh-csg 0.0.16, occt-import-js 0.0.23 |
 | Article Printer | `flask flask-cors requests trafilatura readability-lxml` (lxml 포함) | — (PDF 저장은 로컬 Chrome/Edge 헤드리스, 인쇄 글꼴 Pretendard 는 설치돼 있으면 사용) |
+| Data Analysis Sim | `flask flask-cors numpy scipy pandas openpyxl statsmodels` | Plotly 2.35.2 |
 | Conference Program Book | `pandas openpyxl` | — |
 
 - exe 를 직접 빌드하려면 `pip install pyinstaller` 후 각 폴더의 `.spec` 으로 `pyinstaller <이름>.spec`.
 
 - Node.js 는 필요 없다 (`.claude/launch.json` 의 일부 개발용 미리보기 설정만 `npx http-server` 를 쓴다).
-- 포트: 통합 런처 3100, 각 프로그램 3000~3008 (쓰이고 있으면 다음 빈 포트), LaTeX OCR 서버 5000 · Article Printer 5001 · Quarter-Car 제어기 8000 (고정).
+- 포트: 통합 런처 3100, 각 프로그램 3000~3008 (쓰이고 있으면 다음 빈 포트), LaTeX OCR 서버 5000 · Article Printer 5001 · Data Analysis Sim 5002 · Quarter-Car 제어기 8000 (고정).
 - 저장소에 없는 것: `cad_modeler/models/` 의 설계 결과물(빌드 스크립트·작업 기록·STEP)은 커밋하지 않는다. 예제(propeller, strainer)만 빌드 스크립트와 작업 기록으로 들어 있고, 모델은 빌드 스크립트로 다시 만든다.
 
 ## 실행 방법

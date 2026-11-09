@@ -72,6 +72,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["article_printer/server.py"],
       "port": 5001
+    },
+    {
+      "name": "data_analysis_sim",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["data_analysis_sim/server.py"],
+      "port": 5002
     }
   ]
 }

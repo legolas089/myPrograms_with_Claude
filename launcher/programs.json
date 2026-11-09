@@ -103,6 +103,17 @@
       "blurb": "Paste up to 10 article links, extract the body text, and print them as one PDF."
     },
     {
+      "id": "data_analysis_sim",
+      "name": "Data Analysis Sim",
+      "folder": "data_analysis_sim",
+      "group": "Web apps",
+      "category": "Data / Analysis",
+      "icon": "ti-chart-histogram",
+      "mode": "web",
+      "backend": "server.py",
+      "blurb": "Distribution analysis: KDE, moments, quantiles, with seeded synthetic data."
+    },
+    {
       "id": "conference_programbook",
       "name": "Conference Program Book",
       "folder": "conference_programbook",

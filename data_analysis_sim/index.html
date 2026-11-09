@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Analysis Sim</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="header-row">
+        <h1>Data Analysis Sim</h1>
+        <span id="backend-status" class="status status-wait">백엔드 확인 중…</span>
+      </div>
+      <p class="subtitle">데이터 분포를 넣으면 KDE·모멘트·분위수 등을 계산합니다. 데이터가 없으면 분포·seed·샘플 수를 정해 합성 데이터로 시험할 수 있습니다.</p>
+    </header>
+
+    <div class="layout">
+      <!-- ── Data source ── -->
+      <aside class="sidebar">
+        <div class="seg" role="tablist">
+          <button class="seg-btn active" data-src="synth">합성 데이터</button>
+          <button class="seg-btn" data-src="upload">내 데이터</button>
+        </div>
+
+        <section id="src-synth" class="panel">
+          <label class="field">
+            <span>분포</span>
+            <select id="dist-select"></select>
+          </label>
+          <p id="dist-note" class="note hidden"></p>
+          <div id="param-fields" class="grid2"></div>
+
+          <label class="field">
+            <span>샘플 수 N</span>
+            <input id="n-input" type="number" min="2" step="1" value="10000">
+          </label>
+          <div class="chips" id="n-chips">
+            <button data-n="100">100</button><button data-n="1000">1k</button>
+            <button data-n="10000">10k</button><button data-n="100000">100k</button>
+            <button data-n="1000000">1M</button>
+          </div>
+
+          <label class="field">
+            <span>Random seed</span>
+            <div class="row">
+              <input id="seed-input" type="number" min="0" max="4294967295" step="1" value="42">
+              <button id="dice-btn" class="btn-icon" title="임의 seed 로 바꿔 바로 생성">🎲</button>
+            </div>
+          </label>
+
+          <details id="ts-details">
+            <summary>시계열 성분 (선택)</summary>
+            <p class="note">샘플 순서를 시간으로 보고 성분을 더합니다. 하나라도 켜면 이론값 비교는 꺼집니다.</p>
+            <div class="grid2">
+              <label class="field"><span>fs 샘플링 [Hz]</span><input id="ts-fs" type="number" value="100" min="0" step="any"></label>
+              <label class="field"><span>추세 [/s]</span><input id="ts-trend" type="number" value="0" step="any"></label>
+              <label class="field"><span>AR(1) φ</span><input id="ts-phi" type="number" value="0" min="-0.999" max="0.999" step="0.05"></label>
+              <label class="field check"><input id="ts-rw" type="checkbox"><span>랜덤워크 (누적합)</span></label>
+            </div>
+            <div class="sine-head"><span>사인</span><span>주파수 [Hz]</span><span>진폭</span></div>
+            <div id="sine-rows"></div>
+          </details>
+
+          <button id="gen-btn" class="btn-primary wide">생성 &amp; 분석</button>
+        </section>
+
+        <section id="src-upload" class="panel hidden">
+          <div id="drop-zone" class="drop-zone">
+            CSV · TXT · XLSX 파일을 끌어다 놓거나 <label class="link">찾아보기<input id="file-input" type="file" accept=".csv,.tsv,.txt,.dat,.xlsx,.xlsm,.xls" hidden></label>
+          </div>
+          <label class="field">
+            <span>또는 붙여넣기</span>
+            <textarea id="paste-input" rows="7" spellcheck="false" placeholder="숫자를 줄마다, 또는 쉼표·공백으로 구분해 붙여넣기&#10;표(헤더 포함)도 됩니다&#10;&#10;12.1&#10;11.8&#10;13.4"></textarea>
+          </label>
+          <button id="paste-btn" class="btn-primary wide">붙여넣은 데이터 분석</button>
+        </section>
+
+        <section id="dataset-card" class="panel hidden">
+          <div class="panel-title">현재 데이터</div>
+          <label id="column-field" class="field hidden">
+            <span>분석할 열</span>
+            <select id="column-select"></select>
+          </label>
+          <div id="fs-field" class="field hidden">
+            <span>샘플링 주파수 fs [Hz] — 시간·주파수 축 단위</span>
+            <div class="row">
+              <input id="fs-input" type="number" min="0" step="any" placeholder="1">
+              <select id="fs-time-col" title="시간 열이 있으면 그 간격으로 fs 를 정합니다"></select>
+              <button id="fs-apply" class="btn-icon" title="적용">✓</button>
+            </div>
+            <p id="fs-note" class="note hidden"></p>
+          </div>
+          <dl id="dataset-info" class="info"></dl>
+        </section>
+      </aside>
+
+      <!-- ── Results ── -->
+      <main class="main">
+        <nav class="tabs">
+          <button class="tab active" data-tab="overview">개요</button>
+          <button class="tab" data-tab="risk">리스크·꼬리</button>
+          <button class="tab" data-tab="fit">분포 적합·검정</button>
+          <button class="tab" data-tab="ts">시계열</button>
+          <button class="tab" data-tab="spec">주파수</button>
+          <button class="tab" disabled title="4단계">Seed / N 테스트</button>
+        </nav>
+
+        <div id="empty" class="empty">왼쪽에서 데이터를 생성하거나 불러오세요.</div>
+        <div id="error" class="error hidden"></div>
+
+        <section id="tab-overview" class="pane hidden">
+          <div id="kpis" class="kpis"></div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>분포 — 히스토그램 · KDE</h2>
+              <div class="controls">
+                <label>대역폭
+                  <select id="bw-method">
+                    <option value="silverman">Silverman</option>
+                    <option value="scott">Scott</option>
+                  </select>
+                </label>
+                <label>배율 <input id="bw-scale" type="range" min="-2" max="2" step="0.05" value="0"> <b id="bw-scale-val">×1.00</b></label>
+                <span class="hint" id="bw-h"></span>
+                <label class="check"><input id="show-hist" type="checkbox" checked> 히스토그램</label>
+                <label class="check"><input id="show-kde" type="checkbox" checked> KDE</label>
+                <label class="check"><input id="show-true" type="checkbox" checked> 참 분포</label>
+                <label>범위
+                  <select id="view-mode">
+                    <option value="auto">자동</option>
+                    <option value="full">전체</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <p id="view-note" class="note hidden"></p>
+            <div id="plot-density" class="plot"></div>
+            <div id="plot-box" class="plot plot-box"></div>
+          </div>
+
+          <div class="cols">
+            <div class="card">
+              <h2>통계량</h2>
+              <table class="stats" id="stats-table"></table>
+            </div>
+            <div class="card">
+              <h2>모멘트</h2>
+              <table class="stats" id="moments-table"></table>
+              <h2 class="mt">분위수</h2>
+              <table class="stats" id="pct-table"></table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>샘플 순서대로 본 값 (시계열 미리보기)</h2>
+              <span class="hint" id="series-note"></span>
+            </div>
+            <div id="plot-series" class="plot plot-series"></div>
+          </div>
+        </section>
+
+        <!-- ── Risk & tails ── -->
+        <section id="tab-risk" class="pane hidden">
+          <div class="loading hidden" data-loading>계산 중…</div>
+          <div class="card">
+            <div class="card-head">
+              <h2>꼬리 위험 — VaR · CVaR</h2>
+              <div class="controls">
+                <label>신뢰수준
+                  <select id="risk-level">
+                    <option value="0">90%</option><option value="1" selected>95%</option>
+                    <option value="2">97.5%</option><option value="3">99%</option><option value="4">99.5%</option>
+                  </select>
+                </label>
+                <label>꼬리
+                  <select id="risk-side">
+                    <option value="both">양쪽</option>
+                    <option value="left">왼쪽 (수익률이면 손실 쪽)</option>
+                    <option value="right">오른쪽 (손실액·지연시간이면 위험 쪽)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div id="risk-kpis" class="kpis"></div>
+            <div id="plot-risk" class="plot"></div>
+            <p class="note">VaR = 꼬리 확률 α(= 1 − 신뢰수준) 지점의 분위수, CVaR(Expected Shortfall) = 그 지점 너머 값들의 평균.
+              값은 데이터 단위 그대로이며 부호를 뒤집지 않습니다. CVaR 은 표본 분위수 함수를 정확히 적분해 계산합니다.</p>
+            <p id="risk-note" class="note warn hidden"></p>
+          </div>
+
+          <div class="card">
+            <h2>신뢰수준별 VaR · CVaR</h2>
+            <table class="stats" id="risk-table"></table>
+          </div>
+
+          <div class="cols">
+            <div class="card">
+              <h2>꼬리 두께·비대칭</h2>
+              <table class="stats" id="tail-table"></table>
+            </div>
+            <div class="card">
+              <h2>이상치</h2>
+              <table class="stats" id="outlier-table"></table>
+              <h2 class="mt">중앙값에서 가장 먼 값</h2>
+              <table class="stats" id="extreme-table"></table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>최대 낙폭 (MDD)</h2>
+              <div class="controls">
+                <label>값을
+                  <select id="dd-mode">
+                    <option value="cumulative">증분으로 보고 누적 (수익률·변화량)</option>
+                    <option value="level">수준 그대로 (가격·잔고)</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div id="dd-kpis" class="kpis"></div>
+            <div id="plot-dd" class="plot plot-tall"></div>
+          </div>
+        </section>
+
+        <!-- ── Time series ── -->
+        <section id="tab-ts" class="pane hidden">
+          <div class="loading hidden" data-loading>계산 중…</div>
+          <div class="card">
+            <div class="card-head">
+              <h2>시간에 따른 값 · 이동 통계 · 추세</h2>
+              <div class="controls">
+                <label>이동 창 <input id="ts-window" type="number" min="2" step="1" class="num"> 샘플</label>
+                <label class="check"><input id="ts-band" type="checkbox" checked> ±1σ 띠</label>
+                <label class="check"><input id="ts-trend-show" type="checkbox" checked> 추세선</label>
+              </div>
+            </div>
+            <div id="ts-kpis" class="kpis"></div>
+            <div id="plot-ts" class="plot plot-tall"></div>
+          </div>
+
+          <div class="card">
+            <h2>시계열 검정 <span class="hint">유의수준 5%</span></h2>
+            <table class="stats" id="ts-tests"></table>
+            <p id="ts-note" class="note hidden"></p>
+          </div>
+
+          <div class="cols cols-even">
+            <div class="card">
+              <div class="card-head">
+                <h2>자기상관 ACF</h2>
+                <label class="controls">시차 수 <input id="ts-lags" type="number" min="1" max="500" step="1" class="num"></label>
+              </div>
+              <div id="plot-acf" class="plot plot-mid"></div>
+              <p class="note">파란 띠: Bartlett 95% 구간(앞 시차들이 0 이 아닐 때의 불확실성), 점선: 백색잡음 기준 ±1.96/√N.</p>
+            </div>
+            <div class="card">
+              <h2>편자기상관 PACF</h2>
+              <div id="plot-pacf" class="plot plot-mid"></div>
+              <p class="note">AR(p) 과정이면 p 시차 뒤로 띠 안으로 떨어집니다.</p>
+            </div>
+          </div>
+
+          <div class="cols cols-even">
+            <div class="card">
+              <div class="card-head">
+                <h2>구간별 통계</h2>
+                <label class="controls">구간 수 <input id="ts-segments" type="number" min="2" max="100" step="1" value="10" class="num"></label>
+              </div>
+              <div id="plot-seg" class="plot plot-mid"></div>
+            </div>
+            <div class="card">
+              <h2>DFA — 장기 기억 (Hurst)</h2>
+              <div id="plot-dfa" class="plot plot-mid"></div>
+              <p class="note">창 크기 s 별 요동 F(s) 의 기울기 α. 0.5 무상관, 0.5~1 장기 지속성, 1 = 1/f 잡음, 1.5 랜덤워크.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Frequency ── -->
+        <section id="tab-spec" class="pane hidden">
+          <div class="loading hidden" data-loading>계산 중…</div>
+          <div class="card">
+            <div class="card-head">
+              <h2>주파수 분석</h2>
+              <div class="controls">
+                <label>추세 제거
+                  <select id="spec-detrend">
+                    <option value="linear">선형</option><option value="constant">평균만</option><option value="none">안 함</option>
+                  </select>
+                </label>
+                <label>Welch 구간
+                  <select id="spec-nperseg">
+                    <option value="">자동</option><option>256</option><option>512</option><option>1024</option>
+                    <option>2048</option><option>4096</option><option>8192</option><option>16384</option>
+                  </select>
+                </label>
+                <label>STFT 창
+                  <select id="spec-stft">
+                    <option value="">자동</option><option>64</option><option>128</option><option>256</option>
+                    <option>512</option><option>1024</option><option>2048</option>
+                  </select>
+                </label>
+                <label class="check"><input id="spec-log" type="checkbox"> 진폭 로그축</label>
+              </div>
+            </div>
+            <div id="spec-kpis" class="kpis"></div>
+            <p id="spec-note" class="note hidden"></p>
+          </div>
+
+          <div class="card">
+            <h2>진폭 스펙트럼 (FFT, Hann 창) <span class="hint">사인 진폭 A 가 높이 A 로 보이도록 보정</span></h2>
+            <div id="plot-fft" class="plot"></div>
+          </div>
+
+          <div class="cols cols-even">
+            <div class="card">
+              <h2>파워 스펙트럼 밀도 (Welch)</h2>
+              <div id="plot-psd" class="plot plot-mid"></div>
+              <p id="psd-note" class="note"></p>
+            </div>
+            <div class="card">
+              <h2>주요 주파수</h2>
+              <table class="stats" id="peaks-table"></table>
+              <h2 class="mt">스펙트럼 지표</h2>
+              <table class="stats" id="desc-table"></table>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2>스펙트로그램 (STFT) <span class="hint">시간에 따라 주파수 성분이 바뀌는지</span></h2>
+            <div id="plot-stft" class="plot plot-tall"></div>
+          </div>
+        </section>
+
+        <!-- ── Fit & tests ── -->
+        <section id="tab-fit" class="pane hidden">
+          <div class="loading hidden" data-loading>분포 적합 중… (N 이 크면 몇 초 걸립니다)</div>
+          <div class="card">
+            <h2>정규성 검정 <span class="hint">H0: 정규분포를 따른다 · 유의수준 5%</span></h2>
+            <table class="stats" id="norm-table"></table>
+            <p id="norm-note" class="note warn hidden"></p>
+          </div>
+
+          <div class="card">
+            <h2>분포 적합 순위 <span class="hint">최대우도추정(MLE) · AIC 오름차순</span></h2>
+            <table class="stats" id="fit-table"></table>
+            <p class="note">ΔAIC &lt; 2 이면 사실상 우열이 없고, &gt; 10 이면 뒤쪽 모형은 거의 지지받지 못합니다. 가중치는 Akaike 가중치(이 후보들 중 최선일 확률의 근사).
+              KS 의 p 값은 같은 데이터로 파라미터를 추정했기 때문에 실제보다 크게(낙관적으로) 나옵니다.</p>
+            <p id="fit-notes" class="note hidden"></p>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>적합 분포 비교</h2>
+              <span class="hint">표의 체크박스로 겹쳐 그릴 분포를 고릅니다</span>
+            </div>
+            <div id="plot-fit-pdf" class="plot"></div>
+          </div>
+
+          <div class="cols cols-even">
+            <div class="card">
+              <div class="card-head">
+                <h2>Q-Q 그림</h2>
+                <label class="controls">기준 분포 <select id="qq-family"></select></label>
+              </div>
+              <div id="plot-qq" class="plot"></div>
+              <p class="note">점이 대각선 위에 있으면 그 분포와 맞습니다. 양 끝이 바깥으로 휘면 기준보다 두꺼운 꼬리, 안쪽으로 휘면 얇은 꼬리.</p>
+            </div>
+            <div class="card">
+              <h2>ECDF 와 적합 CDF</h2>
+              <div id="plot-ecdf" class="plot"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
