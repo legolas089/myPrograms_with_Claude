@@ -114,6 +114,17 @@
       "blurb": "Distribution analysis: KDE, moments, quantiles, with seeded synthetic data."
     },
     {
+      "id": "optimization_sim",
+      "name": "Optimization Sim",
+      "folder": "optimization_sim",
+      "group": "Web apps",
+      "category": "Data / Analysis",
+      "icon": "ti-target-arrow",
+      "mode": "web",
+      "backend": "server.py",
+      "blurb": "1-D/2-D optimization: SciPy minimize & global, CasADi IPOPT/SQP, Bayesian optimization on functions or data."
+    },
+    {
       "id": "conference_programbook",
       "name": "Conference Program Book",
       "folder": "conference_programbook",

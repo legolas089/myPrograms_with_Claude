@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Optimization Sim</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="header-row">
+        <h1>Optimization Sim</h1>
+        <span id="backend-status" class="status status-wait">백엔드 확인 중…</span>
+      </div>
+      <p class="subtitle">1·2차원 함수나 데이터를 최소화합니다 — SciPy minimize·전역 최적화, CasADi(IPOPT·SQP), 베이지안 최적화를 같은 문제에서 경로·수렴·평가 수로 비교합니다.</p>
+    </header>
+
+    <div class="layout">
+      <!-- ── Problem definition ── -->
+      <aside class="sidebar">
+        <div class="seg" id="src-seg">
+          <button class="seg-btn active" data-src="function">테스트 함수</button>
+          <button class="seg-btn" data-src="data">내 데이터</button>
+        </div>
+
+        <section id="src-function" class="panel">
+          <div class="seg seg-sm" id="dim-seg">
+            <button class="seg-btn" data-dim="1">1차원 f(x)</button>
+            <button class="seg-btn active" data-dim="2">2차원 f(x, y)</button>
+          </div>
+          <label class="field"><span>함수</span><select id="func-select"></select></label>
+          <div id="func-formula" class="formula"></div>
+          <p id="func-note" class="note hidden"></p>
+          <label id="expr-field" class="field hidden"><span>f = (변수 x, y · ^ 거듭제곱 · sin cos exp log sqrt abs tanh min max …)</span>
+            <textarea id="expr-input" rows="2" spellcheck="false"></textarea></label>
+          <div id="param-fields" class="grid2"></div>
+
+          <div class="field">
+            <span>탐색 영역 <button id="bounds-reset" class="link-btn" title="함수의 기본 영역으로">기본값</button></span>
+            <div id="bounds-fields" class="bounds"></div>
+          </div>
+
+          <label class="field"><span>목적 함수로 쓸 것</span>
+            <select id="objective-mode">
+              <option value="true">참 함수 그대로 (해석식 · 정확한 미분)</option>
+              <option value="samples">샘플 데이터 → 대리모델 (데이터 최적화)</option>
+            </select>
+          </label>
+          <div id="samples-block" class="subpanel hidden">
+            <p class="note">함수에서 N개 점을 뽑고(잡음 추가 가능) 그 데이터로 만든 대리모델을 최소화합니다. 최적점의 <b>참 함수 값</b>도 함께 보여 줍니다.</p>
+            <div class="grid2">
+              <label class="field"><span>샘플 수 N</span><input id="smp-n" type="number" min="3" max="20000" step="1" value="40"></label>
+              <label class="field"><span>표본 방식</span>
+                <select id="smp-method"><option value="lhs">LHS</option><option value="random">균등 무작위</option><option value="sobol">Sobol</option><option value="grid">격자</option></select></label>
+              <label class="field"><span>잡음 σ (f 범위의 %)</span><input id="smp-noise" type="number" min="0" step="0.5" value="0"></label>
+              <label class="field"><span>seed</span>
+                <div class="row"><input id="smp-seed" type="number" min="0" step="1" value="1"><button id="smp-dice" class="btn-icon" title="임의 seed">🎲</button></div></label>
+            </div>
+          </div>
+        </section>
+
+        <section id="src-data" class="panel hidden">
+          <div id="drop-zone" class="drop-zone">
+            CSV · TXT · XLSX 파일을 끌어다 놓거나 <label class="link">찾아보기<input id="file-input" type="file" accept=".csv,.tsv,.txt,.dat,.xlsx,.xlsm,.xls" hidden></label>
+          </div>
+          <label class="field"><span>또는 붙여넣기 (열: x, f  또는  x, y, f)</span>
+            <textarea id="paste-input" rows="6" spellcheck="false" placeholder="x, y, f&#10;0.1, 0.5, 3.2&#10;0.4, 0.2, 1.7&#10;…"></textarea></label>
+          <button id="paste-btn" class="btn-secondary wide">붙여넣은 데이터 불러오기</button>
+          <div id="data-map" class="subpanel hidden">
+            <div class="panel-title" id="data-name"></div>
+            <div class="grid2">
+              <label class="field"><span>차원</span><select id="map-dim"><option value="1">1차원: f(x)</option><option value="2">2차원: f(x, y)</option></select></label>
+              <label class="field"><span>목적값 f 열</span><select id="map-f"></select></label>
+              <label class="field"><span>x 열</span><select id="map-x"></select></label>
+              <label class="field" id="map-y-field"><span>y 열</span><select id="map-y"></select></label>
+            </div>
+            <p class="note">탐색 영역은 데이터의 x(, y) 범위입니다.</p>
+          </div>
+        </section>
+
+        <section id="surrogate-block" class="panel hidden">
+          <div class="panel-title">대리모델 (데이터 → 함수)</div>
+          <label class="field"><span>방법</span><select id="sur-method"></select></label>
+          <label class="field" id="sur-smooth-field"><span>평활화 λ (0 = 모든 점을 지남, 잡음이 있으면 0.01~1)</span>
+            <input id="sur-smooth" type="number" min="0" step="any" value="0"></label>
+          <p class="note">데이터로 맞춘 모델을 촘촘한 격자에서 계산해 CasADi B-스플라인으로 만듭니다 — 모든 솔버가 그 위에서 정확한 기울기·헤시안을 씁니다.</p>
+        </section>
+
+        <section class="panel">
+          <details id="cons-details">
+            <summary>제약식 (선택)</summary>
+            <p class="note">한 줄에 하나: <code>x^2 + y^2 &lt;= 1</code>, <code>x + y &gt;= 0.5</code>, <code>x - y = 0</code>. 최대 4개.</p>
+            <textarea id="cons-input" rows="3" spellcheck="false" placeholder="x^2 + y^2 <= 1"></textarea>
+          </details>
+          <button id="build-btn" class="btn-primary wide">문제 만들기</button>
+        </section>
+
+        <section id="problem-card" class="panel hidden">
+          <div class="panel-title">현재 문제</div>
+          <dl id="problem-info" class="info"></dl>
+        </section>
+      </aside>
+
+      <!-- ── Results ── -->
+      <main class="main">
+        <nav class="tabs">
+          <button class="tab active" data-tab="problem">문제 · 지형</button>
+          <button class="tab" data-tab="run">단일 실행</button>
+          <button class="tab" data-tab="compare">알고리즘 비교</button>
+          <button class="tab" data-tab="multi">다중 시작 테스트</button>
+        </nav>
+
+        <div id="empty" class="empty">왼쪽에서 함수나 데이터를 고르고 <b>문제 만들기</b>를 누르세요.</div>
+        <div id="error" class="error hidden"></div>
+
+        <!-- ── Problem ── -->
+        <section id="tab-problem" class="pane hidden">
+          <div id="prob-kpis" class="kpis"></div>
+          <div class="card">
+            <div class="card-head">
+              <h2 id="land-title">목적 함수 지형</h2>
+              <div class="controls">
+                <label class="check"><input id="land-log" type="checkbox"> 색 로그 축</label>
+                <label class="check dim2"><input id="land-3d" type="checkbox"> 3D 표면</label>
+                <label class="check" id="land-true-wrap"><input id="land-true" type="checkbox" checked> 참 함수</label>
+                <label class="check" id="land-data-wrap"><input id="land-data" type="checkbox" checked> 데이터 점</label>
+                <label class="check"><input id="land-minima" type="checkbox" checked> 국소 최솟값</label>
+              </div>
+            </div>
+            <div id="plot-land" class="plot plot-square"></div>
+            <p class="note">그래프를 클릭하면 그 점이 <b>단일 실행</b>·<b>비교</b>의 시작점이 됩니다. 검은 영역은 제약을 어기는 곳입니다.</p>
+            <p id="prob-notes" class="note warn hidden"></p>
+          </div>
+          <div class="cols cols-even">
+            <div class="card">
+              <h2>국소 최솟값 <span class="hint" id="minima-hint"></span></h2>
+              <table class="stats" id="minima-table"></table>
+            </div>
+            <div class="card">
+              <h2>기준 해 <span class="hint">격자 전수 탐색 + 국소 polish</span></h2>
+              <table class="stats" id="ref-table"></table>
+              <p class="note">1·2차원이라 영역 전체를 촘촘한 격자(1D 20,001점 · 2D 401×401)로 계산한 뒤 가장 낮은 후보들을 SLSQP/L-BFGS-B 로 다듬어 전역 최솟값을 정합니다. 알고리즘의 "전역 도달" 여부는 이 값과 비교합니다.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Single run ── -->
+        <section id="tab-run" class="pane hidden">
+          <div class="card">
+            <div class="run-form">
+              <div class="run-left">
+                <label class="field"><span>알고리즘</span><select id="algo-select"></select></label>
+                <div id="algo-badges" class="badges"></div>
+                <p id="algo-desc" class="note"></p>
+                <div class="field">
+                  <span>시작점 x₀ <span class="hint">(지형 그래프를 클릭해도 됩니다)</span></span>
+                  <div class="row" id="x0-fields"></div>
+                  <div class="row mt4">
+                    <button id="x0-random" class="btn-small">🎲 무작위</button>
+                    <button id="x0-default" class="btn-small">기본값</button>
+                  </div>
+                </div>
+              </div>
+              <div class="run-right">
+                <div class="field"><span>옵션 <button id="opt-reset" class="link-btn">기본값</button></span>
+                  <div id="opt-fields" class="opt-grid"></div></div>
+              </div>
+            </div>
+            <div class="row mt8">
+              <button id="run-btn" class="btn-primary">실행</button>
+              <span class="hint" id="run-hint"></span>
+            </div>
+          </div>
+
+          <div class="loading hidden" data-loading>최적화 중…</div>
+          <div id="run-empty" class="empty">알고리즘과 시작점을 고르고 <b>실행</b>을 누르세요.</div>
+
+          <div id="run-results" class="stack hidden">
+            <div id="run-kpis" class="kpis"></div>
+            <p id="run-notes" class="note warn hidden"></p>
+            <div class="card">
+              <div class="card-head">
+                <h2 id="path-title">탐색 경로</h2>
+                <div class="controls">
+                  <label class="check"><input id="path-evals" type="checkbox" checked> 모든 평가점</label>
+                  <label class="check"><input id="path-log" type="checkbox"> 색 로그 축</label>
+                </div>
+              </div>
+              <div id="plot-path" class="plot plot-square"></div>
+              <p id="path-note" class="note"></p>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>수렴 — 함수 평가 수에 따른 f</h2>
+                <div class="controls">
+                  <label>세로축 <select id="conv-y"><option value="gap">f − f* (로그)</option><option value="f">f</option></select></label>
+                </div>
+              </div>
+              <div id="plot-conv" class="plot plot-mid"></div>
+              <p id="conv-note" class="note"></p>
+            </div>
+            <div id="bo-card" class="card hidden">
+              <div class="card-head">
+                <h2>베이지안 최적화 — 단계별 대리모델과 획득함수</h2>
+                <div class="controls">
+                  <label>단계 <input id="bo-step" type="range" min="0" max="0" step="1" value="0"> <b id="bo-step-val"></b></label>
+                  <button id="bo-play" class="btn-small">▶ 재생</button>
+                </div>
+              </div>
+              <div id="plot-bo" class="plot plot-tall"></div>
+              <p id="bo-note" class="note"></p>
+            </div>
+            <div id="ipopt-card" class="card hidden">
+              <h2>IPOPT 반복 정보 <span class="hint">원 실현가능성 inf_pr · 쌍대 inf_du · 장벽 μ</span></h2>
+              <div id="plot-ipopt" class="plot plot-mid"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Compare ── -->
+        <section id="tab-compare" class="pane hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2>비교할 알고리즘</h2>
+              <div class="controls">
+                <button class="btn-small" data-preset="rep" data-target="cmp">대표 묶음</button>
+                <button class="btn-small" data-preset="all" data-target="cmp">전체</button>
+                <button class="btn-small" data-preset="none" data-target="cmp">비우기</button>
+              </div>
+            </div>
+            <div id="cmp-algos" class="algo-check"></div>
+            <p class="note">시작점은 단일 실행 탭의 x₀ (<b id="cmp-x0"></b>), 옵션은 단일 실행 탭에서 바꾼 값을 씁니다 (안 바꿨으면 기본값). 시작점을 쓰지 않는 방법(DE·SHGO·DIRECT·베이지안)은 영역 전체에서 출발합니다.</p>
+            <div class="row mt8">
+              <button id="cmp-run" class="btn-primary">비교 실행</button>
+              <button id="cmp-cancel" class="btn-secondary hidden">취소</button>
+              <div id="cmp-progress" class="progress hidden"><div class="bar"></div><span></span></div>
+            </div>
+          </div>
+          <div id="cmp-empty" class="empty">알고리즘을 고르고 <b>비교 실행</b>을 누르세요.</div>
+          <div id="cmp-results" class="stack hidden">
+            <div class="card">
+              <h2>결과 <span class="hint">f 오름차순 · 행을 누르면 그 경로를 강조</span></h2>
+              <table class="stats" id="cmp-table"></table>
+              <p class="note">전역 도달 = f − f* ≤ 허용오차 이면서 제약 위반 ≤ 10⁻⁶. 평가 수는 기울기를 유한차분으로 구할 때 쓴 f 호출을 포함합니다. CasADi 는 솔버 통계의 호출 수입니다.</p>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>수렴 비교 — 지금까지 최선 f − f* 대 평가 수</h2>
+                <div class="controls"><label class="check"><input id="cmp-logx" type="checkbox" checked> 가로 로그 축</label></div>
+              </div>
+              <div id="plot-cmp-conv" class="plot plot-tall"></div>
+            </div>
+            <div class="card">
+              <h2>경로 겹쳐 보기 <span class="hint">범례를 눌러 켜고 끕니다</span></h2>
+              <div id="plot-cmp-path" class="plot plot-square"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Multi-start ── -->
+        <section id="tab-multi" class="pane hidden">
+          <div class="card">
+            <div class="card-head">
+              <h2>다중 시작 테스트 <span class="hint">같은 무작위 시작점들(Sobol) · 확률적 방법은 시작마다 다른 seed</span></h2>
+              <div class="controls">
+                <button class="btn-small" data-preset="rep" data-target="ms">대표 묶음</button>
+                <button class="btn-small" data-preset="local" data-target="ms">국소 방법</button>
+                <button class="btn-small" data-preset="global" data-target="ms">전역·베이지안</button>
+                <button class="btn-small" data-preset="none" data-target="ms">비우기</button>
+              </div>
+            </div>
+            <div id="ms-algos" class="algo-check"></div>
+            <div class="ms-form">
+              <label class="field"><span>시작점(반복) 수</span><input id="ms-n" type="number" min="1" max="200" value="30"></label>
+              <label class="field"><span>seed</span><input id="ms-seed" type="number" min="0" value="0"></label>
+              <label class="field"><span>전역 도달 허용오차 |f − f*|</span><input id="ms-tol" type="number" min="0" step="any"></label>
+              <button id="ms-run" class="btn-primary">테스트 실행</button>
+              <button id="ms-cancel" class="btn-secondary hidden">취소</button>
+            </div>
+            <div id="ms-progress" class="progress hidden"><div class="bar"></div><span></span></div>
+            <p id="ms-work" class="hint"></p>
+          </div>
+          <div id="ms-empty" class="empty">알고리즘을 고르고 <b>테스트 실행</b>을 누르세요. 출발점에 따라 결과가 얼마나 달라지는지(강건성)를 봅니다.</div>
+          <div id="ms-results" class="stack hidden">
+            <div class="card">
+              <h2>알고리즘별 요약 <span class="hint">허용오차를 바꾸면 바로 다시 계산</span></h2>
+              <table class="stats" id="ms-table"></table>
+              <p class="note">도달한 분지 = 끝난 점이 몇 개의 서로 다른 국소 최솟값에 있었는지. 결정론적 방법(SHGO·DIRECT)은 시작점을 쓰지 않아 매번 같은 결과입니다.</p>
+            </div>
+            <div class="card">
+              <h2>최종 오차 분포 <span class="hint">log₁₀(f − f* + 10⁻¹²) · 점 하나 = 시작 하나 · 초록 점선 = 허용오차</span></h2>
+              <div id="plot-ms-box" class="plot plot-tall"></div>
+            </div>
+            <div class="card">
+              <h2>중앙값 수렴 <span class="hint">시작점들에 걸친 최선 f − f* 의 중앙값 · 띠 = 25~75% · 범례를 눌러 켜고 끕니다</span></h2>
+              <div id="plot-ms-conv" class="plot plot-tall"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">
+                <h2>출발점 지도 — 어디서 출발하면 전역 최솟값에 가는가</h2>
+                <div class="controls"><label>알고리즘 <select id="ms-map-algo"></select></label></div>
+              </div>
+              <div id="plot-ms-map" class="plot plot-square"></div>
+              <p class="note">○ 출발점(초록 = 전역 도달, 빨강 = 실패) · ✕ 도착점. 국소 방법이면 각 국소 최솟값의 끌림 영역(basin of attraction)이 보입니다.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

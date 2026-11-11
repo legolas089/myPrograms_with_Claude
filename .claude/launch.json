@@ -78,6 +78,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["data_analysis_sim/server.py"],
       "port": 5002
+    },
+    {
+      "name": "optimization_sim",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["optimization_sim/server.py"],
+      "port": 5003
     }
   ]
 }

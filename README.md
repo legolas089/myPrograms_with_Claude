@@ -5,7 +5,7 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 각 프로그램은 별도의 하위 폴더로 관리됩니다. `.bat` 파일을 더블클릭하면 터미널 창 없이 브라우저에서 바로 실행됩니다.
 
 - 서버는 창 없이(`pythonw`, exe 는 `console=False`) 백그라운드에서 돈다. **종료**는 작업 관리자에서 `pythonw.exe`(또는 해당 `.exe`)를 끝낸다.
-- 기본 포트가 사용 중이면 다음 빈 포트(+1)로 자동 이동한다. 백엔드 포트(LaTeX OCR 5000 · Article Printer 5001 · Data Analysis Sim 5002 · Quarter-Car 제어기 8000)는 고정.
+- 기본 포트가 사용 중이면 다음 빈 포트(+1)로 자동 이동한다. 백엔드 포트(LaTeX OCR 5000 · Article Printer 5001 · Data Analysis Sim 5002 · Optimization Sim 5003 · Quarter-Car 제어기 8000)는 고정.
 - 필요한 것은 아래 [사전 요구사항](#사전-요구사항) 참고.
 
 ---
@@ -18,7 +18,7 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 - **가운데 패널**: 클릭한 프로그램이 Chrome 스타일 탭으로 열림 — 여러 개를 동시에 실행하고 탭을 전환해도 각 프로그램의 상태가 유지됨
 - **오른쪽 Downloads 패널**: 상단 Downloads 버튼으로 토글, 다운로드 폴더의 최근 파일을 클릭하면 기본 앱으로 열기 / `Open folder`로 폴더 열기
 - 통합 런처 서버 하나(포트 3100)가 저장소 전체를 단일 origin으로 서빙하여 각 웹 프로그램을 iframe으로 임베드 — 프로그램마다 서버를 따로 띄우지 않음
-  - 단, 백엔드가 필요한 프로그램 중 **Article Printer·Data Analysis Sim 백엔드만** 열 때 자동으로 띄운다 (런처를 닫아도 계속 실행됨). LaTeX OCR(5000)·Quarter-Car Python 제어기(8000)는 런처에서 열면 자동 실행되지 않으므로 각 `.bat` 으로 실행
+  - 단, 백엔드가 필요한 프로그램 중 **Article Printer·Data Analysis Sim·Optimization Sim 백엔드만** 열 때 자동으로 띄운다 (런처를 닫아도 계속 실행됨). LaTeX OCR(5000)·Quarter-Car Python 제어기(8000)는 런처에서 열면 자동 실행되지 않으므로 각 `.bat` 으로 실행
 - CLI 전용인 Conference Program Book은 클릭 시 저장소 루트에서 명령어를 바로 실행하는 터미널 창을 연다
 - 프로그램 추가: `launcher/programs.json` 에 항목 하나 추가 (코드 수정 불필요)
 
@@ -205,7 +205,20 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
 **의존성**: `pip install flask flask-cors numpy scipy pandas openpyxl statsmodels`
 
-### 12. Conference Program Book (`conference_programbook/`)
+### 12. Optimization Sim (`optimization_sim/`)
+1·2차원 함수나 데이터를 최소화하면서 최적화 알고리즘 26종을 같은 문제 위에서 비교하는 시뮬레이터 (문제·지형 · 단일 실행 · 알고리즘 비교 · 다중 시작 테스트 탭)
+
+- 문제: 테스트 함수 25종(1D 7 · 2D 18: Rosenbrock·Himmelblau·Rastrigin·Ackley·Branin·Eggholder 등) 또는 직접 입력 수식, 그 함수에서 seed 고정으로 뽑은 **샘플 데이터**(잡음 가능), 또는 **내 데이터**(x, f / x, y, f 열) — 데이터는 RBF·GP·스플라인·선형 대리모델로 바꿔 최소화. 제약식(`x^2 + y^2 <= 1`, `x + y = 1`) 최대 4개
+- 알고리즘: SciPy `minimize` 15종(Nelder–Mead·Powell·COBYLA·COBYQA·CG·BFGS·L-BFGS-B·TNC·SLSQP·Newton-CG·dogleg·trust-ncg/krylov/exact·trust-constr), SciPy 전역 5종(Dual Annealing·DE·Basin-hopping·SHGO·DIRECT), CasADi IPOPT·SQP, 베이지안 최적화(GP 직접 구현·Optuna TPE/GP), 무작위 탐색
+- 기울기·헤시안은 CasADi 자동미분(유한차분으로 바꿀 수 있음), 기준 전역 최솟값은 격자 전수 탐색 + polish 로 구해 "전역 도달" 판정
+- 결과: 탐색 경로·모든 평가점, 평가 수 대비 수렴, 베이지안 최적화의 단계별 GP·획득함수, IPOPT 반복 정보, 알고리즘 비교표, 다중 시작 전역 도달률·출발점 지도(끌림 영역)
+- 계산은 Python 백엔드(`server.py`, 포트 5003). 통합 런처에서 열면 자동으로 띄움
+
+**실행**: `Optimization Sim.bat` 더블클릭 (http://localhost:5003 — 고정 포트) · 상세: [`optimization_sim/README.md`](optimization_sim/README.md)
+
+**의존성**: `pip install flask flask-cors numpy scipy pandas openpyxl casadi scikit-learn optuna` (Optuna GP 는 `torch` 도 필요)
+
+### 13. Conference Program Book (`conference_programbook/`)
 학회 제출 엑셀을 프로그램북 작업 파일로 자동 변환·검증하는 Python CLI 파이프라인
 
 - `input_raw.xlsx` (학회 submission 원본) → `program_book_working.xlsx` (다중 시트 통합 작업본)
@@ -237,7 +250,7 @@ python generate_program.py --step all  # 또는 --step 1|2|3|4|6 개별 실행
 | **Windows** | `.bat` 실행 | `.bat` 은 `pythonw` 로 서버를 띄운다. 다른 OS 에서는 `python <폴더>/launcher.py` (또는 `server.py`) 를 직접 실행 |
 | **[Python 3](https://www.python.org)** (`python` · `pythonw` 가 PATH 에 있어야 함) | 통합 런처와 모든 웹 프로그램 | 서버는 표준 라이브러리만 사용 |
 | **Chrome / Edge 등 최신 브라우저** | 모든 웹 프로그램 | WebGL · WebAssembly · ES 모듈 사용 |
-| **인터넷 연결** | STEP Viewer, PDF Editor, LaTeX Renderer, CAD Modeler, 3D Robot Arm, Data Analysis Sim, 통합 런처(아이콘) | 아래 표의 브라우저 라이브러리를 CDN(unpkg · esm.sh · jsdelivr)에서 받는다 |
+| **인터넷 연결** | STEP Viewer, PDF Editor, LaTeX Renderer, CAD Modeler, 3D Robot Arm, Data Analysis Sim, Optimization Sim, 통합 런처(아이콘) | 아래 표의 브라우저 라이브러리를 CDN(unpkg · esm.sh · jsdelivr)에서 받는다 |
 
 프로그램별로 쓰는 라이브러리:
 
@@ -253,12 +266,13 @@ python generate_program.py --step all  # 또는 --step 1|2|3|4|6 개별 실행
 | CAD Modeler | — | three.js 0.175.0, three-mesh-bvh 0.7.8, three-bvh-csg 0.0.16, occt-import-js 0.0.23 |
 | Article Printer | `flask flask-cors requests trafilatura readability-lxml` (lxml 포함) | — (PDF 저장은 로컬 Chrome/Edge 헤드리스, 인쇄 글꼴 Pretendard 는 설치돼 있으면 사용) |
 | Data Analysis Sim | `flask flask-cors numpy scipy pandas openpyxl statsmodels` | Plotly 2.35.2 |
+| Optimization Sim | `flask flask-cors numpy scipy pandas openpyxl casadi scikit-learn optuna` (Optuna GP 는 `torch`) | Plotly 2.35.2 |
 | Conference Program Book | `pandas openpyxl` | — |
 
 - exe 를 직접 빌드하려면 `pip install pyinstaller` 후 각 폴더의 `.spec` 으로 `pyinstaller <이름>.spec`.
 
 - Node.js 는 필요 없다 (`.claude/launch.json` 의 일부 개발용 미리보기 설정만 `npx http-server` 를 쓴다).
-- 포트: 통합 런처 3100, 각 프로그램 3000~3008 (쓰이고 있으면 다음 빈 포트), LaTeX OCR 서버 5000 · Article Printer 5001 · Data Analysis Sim 5002 · Quarter-Car 제어기 8000 (고정).
+- 포트: 통합 런처 3100, 각 프로그램 3000~3008 (쓰이고 있으면 다음 빈 포트), LaTeX OCR 서버 5000 · Article Printer 5001 · Data Analysis Sim 5002 · Optimization Sim 5003 · Quarter-Car 제어기 8000 (고정).
 - 저장소에 없는 것: `cad_modeler/models/` 의 설계 결과물(빌드 스크립트·작업 기록·STEP)은 커밋하지 않는다. 예제(propeller, strainer)만 빌드 스크립트와 작업 기록으로 들어 있고, 모델은 빌드 스크립트로 다시 만든다.
 
 ## 실행 방법
