@@ -24,12 +24,23 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 
 **실행**: `Launcher.bat` 더블클릭 (http://localhost:3100) · 상세: [`launcher/README.md`](launcher/README.md)
 
+![통합 런처 — Optimization Sim 을 탭으로 연 화면](docs/screenshots/launcher.png)
+
 ---
 
 ## 프로그램 목록
 
+<table>
+  <tr><td align="center"><a href="#1-step-viewer-step_viewer"><img src="docs/screenshots/step_viewer.png" width="260" alt="STEP Viewer"></a><br><sub>STEP Viewer</sub></td><td align="center"><a href="#2-pdf-editor-pdf_editor"><img src="docs/screenshots/pdf_editor.png" width="260" alt="PDF Editor"></a><br><sub>PDF Editor</sub></td><td align="center"><a href="#3-quarter-car-suspension-simulator-quarter_car_sim"><img src="docs/screenshots/quarter_car_sim.png" width="260" alt="Quarter-Car Sim"></a><br><sub>Quarter-Car Sim</sub></td></tr>
+  <tr><td align="center"><a href="#4-half-car-suspension-simulator-half_car_sim"><img src="docs/screenshots/half_car_sim.png" width="260" alt="Half-Car Sim"></a><br><sub>Half-Car Sim</sub></td><td align="center"><a href="#5-roll-center-simulator-roll_center_sim"><img src="docs/screenshots/roll_center_sim.png" width="260" alt="Roll Center Sim"></a><br><sub>Roll Center Sim</sub></td><td align="center"><a href="#6-2d-robot-arm-simulator-robot_arm_sim"><img src="docs/screenshots/robot_arm_sim.png" width="260" alt="2D Robot Arm"></a><br><sub>2D Robot Arm</sub></td></tr>
+  <tr><td align="center"><a href="#7-3d-3-dof-robot-arm-simulator-robot_arm_sim_3d_3dof"><img src="docs/screenshots/robot_arm_sim_3D_3DOF.png" width="260" alt="3D Robot Arm"></a><br><sub>3D Robot Arm</sub></td><td align="center"><a href="#8-latex-renderer-latex_renderer"><img src="docs/screenshots/latex_renderer.png" width="260" alt="LaTeX Renderer"></a><br><sub>LaTeX Renderer</sub></td><td align="center"><a href="#9-simple-cad-modeler-cad_modeler"><img src="docs/screenshots/cad_modeler.png" width="260" alt="CAD Modeler"></a><br><sub>CAD Modeler</sub></td></tr>
+  <tr><td align="center"><a href="#10-article-printer-article_printer"><img src="docs/screenshots/article_printer.png" width="260" alt="Article Printer"></a><br><sub>Article Printer</sub></td><td align="center"><a href="#11-data-analysis-sim-data_analysis_sim"><img src="docs/screenshots/data_analysis_sim.png" width="260" alt="Data Analysis Sim"></a><br><sub>Data Analysis Sim</sub></td><td align="center"><a href="#12-optimization-sim-optimization_sim"><img src="docs/screenshots/optimization_sim.png" width="260" alt="Optimization Sim"></a><br><sub>Optimization Sim</sub></td></tr>
+</table>
+
 ### 1. STEP Viewer (`step_viewer/`)
 3D CAD 파일(.step, .stp) 뷰어
+
+![STEP Viewer — 예제 프로펠러 STEP 파일을 연 화면](docs/screenshots/step_viewer.png)
 
 - 드래그 & 드롭 또는 버튼으로 STEP 파일 로드
 - Three.js + OpenCascade WASM 기반 3D 렌더링
@@ -44,6 +55,8 @@ Claude와 함께 만드는 각종 유틸리티 프로그램 모음.
 ### 2. PDF Editor (`pdf_editor/`)
 PDF 합치기, 분리, 페이지 순서 변경 도구
 
+![PDF Editor — 샘플 PDF 3개를 합치기/정렬 탭에 올린 화면](docs/screenshots/pdf_editor.png)
+
 - **합치기**: 여러 PDF를 하나로 결합, 드래그로 파일 순서 변경
 - **분리 / 정렬**: 페이지 썸네일 미리보기, 드래그로 페이지 순서 변경, 체크박스로 페이지 선택/제외
   - 선택한 페이지를 현재 순서로 저장 (1개 PDF)
@@ -56,6 +69,8 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 
 ### 3. Quarter-Car Suspension Simulator (`quarter_car_sim/`)
 2-DOF 쿼터카 서스펜션 시뮬레이터
+
+![Quarter-Car Sim — 과속방지턱 시뮬레이션 결과](docs/screenshots/quarter_car_sim.png)
 
 - 노면 입력(Speed Bump, Step, Sine, Random)에 대한 차량 응답 실시간 시각화
 - 교과서 스타일 2D 스키매틱 애니메이션 (ms-ks/cs-mu-kt-타이어)
@@ -71,6 +86,8 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 ### 4. Half-Car Suspension Simulator (`half_car_sim/`)
 4-DOF 하프카 서스펜션 시뮬레이터
 
+![Half-Car Sim — 과속방지턱 통과 시 변위·피치 응답](docs/screenshots/half_car_sim.png)
+
 - 전/후 현가 + 차체 CG 수직변위 + 피치 각도 실시간 시각화
 - 축간거리 기반 전/후륜 노면 입력 시간지연
 - 하프카 스키매틱 애니메이션 (바디 피치 기울기 반영)
@@ -83,6 +100,8 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 
 ### 5. Roll Center Simulator (`roll_center_sim/`)
 더블 위시본 서스펜션 프론트뷰 기구학 시뮬레이터
+
+![Roll Center Sim — 더블 위시본 정면 기구학과 범프 스윕](docs/screenshots/roll_center_sim.png)
 
 - 4-bar 링키지 기구학으로 Instant Center, Roll Center 실시간 계산
 - 프론트뷰 2D 애니메이션 (양측 대칭, IC 구성선, RC 마커, Swing Arm, T₁/T₂ 접지점)
@@ -97,6 +116,8 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 ### 6. 2D Robot Arm Simulator (`robot_arm_sim/`)
 2관절 평면 로봇 암 경로 탐색 시뮬레이터
 
+![2D Robot Arm — 경로 탐색 결과](docs/screenshots/robot_arm_sim.png)
+
 - 위치 A(Pick) → 위치 B(Place) 물체 운반을 위한 다양한 경로 탐색
 - 6가지 경로 생성 전략: Joint Linear (MoveJ), Cartesian Linear (MoveL), Via-Point Spline, Elbow Switch, Cubic Polynomial, Circular Arc
 - Forward/Inverse Kinematics 실시간 계산 (Elbow-Up / Elbow-Down)
@@ -110,6 +131,8 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 
 ### 7. 3D 3-DOF Robot Arm Simulator (`robot_arm_sim_3D_3DOF/`)
 수직다관절 3-DOF 로봇 암 경로 탐색 시뮬레이터 (2D 버전의 3차원 확장)
+
+![3D Robot Arm — 작업 공간과 경로 탐색 결과](docs/screenshots/robot_arm_sim_3D_3DOF.png)
 
 - 자유도 3: J1(베이스 회전, Z축) + J2(상완 피치) + J3(전완 피치)
 - 정기구학: `r = L1·cos(θ2) + L2·cos(θ2+θ3)`, `x=r·cosθ1`, `y=r·sinθ1`, `z=h0+L1·sinθ2+L2·sin(θ2+θ3)`
@@ -126,6 +149,8 @@ PDF 합치기, 분리, 페이지 순서 변경 도구
 ### 8. LaTeX Renderer (`latex_renderer/`)
 LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
+![LaTeX Renderer — 수식 실시간 렌더링](docs/screenshots/latex_renderer.png)
+
 - KaTeX 기반 실시간 수식 렌더링 (입력 즉시 변환)
 - 여러 수식 동시 렌더링 (빈 줄로 구분)
 - 자동 줄바꿈 (화면 너비에 맞춰 연산자 위치에서 줄바꿈)
@@ -141,6 +166,8 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
 ### 9. Simple CAD Modeler (`cad_modeler/`)
 브라우저 3D 모델링 워크벤치 — 도면을 보고 파라미터 기반으로 부품을 만들고, 단계마다 형상 검사와 도면 치수 검증을 하며 STEP/STL 로 저장. 사람이 화면에서 직접 쓰거나, AI 에이전트(Claude·Codex·Gemini 등)가 스크립트 API 로 같은 화면에서 모델링한다.
+
+![CAD Modeler — 예제 스트레이너 STEP 파일을 연 화면](docs/screenshots/cad_modeler.png)
 
 - **도형**: Box, Cylinder, Sphere, Cone, **Extrude**(2D 다각형 돌출, twist 로 헬리컬 스윕), **Revolve**(반단면 회전체 — 단차·모따기·돔), **원형 패턴**(개수도 파라미터)
 - **Boolean**: Union / Subtract / Intersect — three-bvh-csg 기반, 노드 내용 기준 평가 캐시로 바뀐 노드만 다시 계산
@@ -168,6 +195,8 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 ### 10. Article Printer (`article_printer/`)
 뉴스·위키·블로그 링크를 붙여넣으면 광고·메뉴를 뺀 본문만 추출해 한 개의 PDF로 묶어 인쇄하는 도구
 
+![Article Printer — 직접 입력한 문서의 문단 미리보기](docs/screenshots/article_printer.png)
+
 - 링크를 한 줄에 하나씩, 한 번에 최대 10개까지 입력 → 병렬로 가져와 문서 목록에 표시
 - 본문 추출: 사이트별 어댑터 → `trafilatura` → `readability-lxml` 순으로 시도
   - 위키백과·네이버 블로그는 본문 컨테이너를 직접 읽어 제목·그림·표를 보존 (네이버 블로그는 바깥 프레임이 아닌 실제 본문 페이지 PostView를 자동으로 찾음)
@@ -189,6 +218,8 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 ### 11. Data Analysis Sim (`data_analysis_sim/`)
 데이터 분포를 넣으면 KDE·모멘트·분위수·꼬리 위험·분포 적합·시계열·주파수 등 의미 있는 값을 뽑는 분석 시뮬레이터 (개요 · 리스크 · 분포 적합 · 시계열 · 주파수 · Seed/N 테스트 탭)
 
+![Data Analysis Sim — 개요 탭 (히스토그램·KDE·참 분포)](docs/screenshots/data_analysis_sim.png)
+
 - 입력: 파일 끌어놓기(CSV·TSV·TXT·XLSX)·붙여넣기, 또는 합성 데이터 15종(정규·로그정규·감마·코시·파레토·정규혼합·포아송 등)을 **분포·파라미터·seed·N** 으로 생성
 - 합성 데이터에 시계열 성분(추세, AR(1), 랜덤워크, 사인 3개) 추가 가능
 - 통계량: 평균·95% CI·중앙값·최빈값, 분산·IQR·MAD·CV, 왜도·초과첨도(± 표준오차), 1~4차 모멘트, 1~99% 분위수 — 합성 데이터면 이론값·차이를 나란히 표시
@@ -207,6 +238,8 @@ LaTeX 수식 실시간 렌더링 및 이미지 변환 도구
 
 ### 12. Optimization Sim (`optimization_sim/`)
 1·2차원 함수나 데이터를 최소화하면서 최적화 알고리즘 26종을 같은 문제 위에서 비교하는 시뮬레이터 (문제·지형 · 단일 실행 · 알고리즘 비교 · 다중 시작 테스트 탭)
+
+![Optimization Sim — Rosenbrock 함수에서 알고리즘 12종 비교](docs/screenshots/optimization_sim.png)
 
 - 문제: 테스트 함수 25종(1D 7 · 2D 18: Rosenbrock·Himmelblau·Rastrigin·Ackley·Branin·Eggholder 등) 또는 직접 입력 수식, 그 함수에서 seed 고정으로 뽑은 **샘플 데이터**(잡음 가능), 또는 **내 데이터**(x, f / x, y, f 열) — 데이터는 RBF·GP·스플라인·선형 대리모델로 바꿔 최소화. 제약식(`x^2 + y^2 <= 1`, `x + y = 1`) 최대 4개
 - 알고리즘: SciPy `minimize` 15종(Nelder–Mead·Powell·COBYLA·COBYQA·CG·BFGS·L-BFGS-B·TNC·SLSQP·Newton-CG·dogleg·trust-ncg/krylov/exact·trust-constr), SciPy 전역 5종(Dual Annealing·DE·Basin-hopping·SHGO·DIRECT), CasADi IPOPT·SQP, 베이지안 최적화(GP 직접 구현·Optuna TPE/GP), 무작위 탐색
